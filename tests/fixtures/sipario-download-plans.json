@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "name": "standalone",
+      "plan": {
+        "rom_id": 1,
+        "preferred_file_id": 10,
+        "files": [
+          {
+            "id": 10,
+            "file_name": "Sonic the Hedgehog (World).bin",
+            "file_size_bytes": 13,
+            "role": "content",
+            "launchable": true,
+            "disc_index": null,
+            "group_id": 100
+          }
+        ],
+        "dependencies": []
+      },
+      "expected_closure": [
+        10
+      ],
+      "file_bytes_base64": {
+        "10": "aGVsbG8gZ2VuZXNpcw=="
+      }
+    },
+    {
+      "name": "cue_with_tracks",
+      "plan": {
+        "rom_id": 2,
+        "preferred_file_id": 20,
+        "files": [
+          {
+            "id": 20,
+            "file_name": "Example Game (USA).cue",
+            "file_size_bytes": 135,
+            "role": "descriptor",
+            "launchable": true,
+            "disc_index": 1,
+            "group_id": 200
+          },
+          {
+            "id": 21,
+            "file_name": "Example Game (USA) (Track 01).bin",
+            "file_size_bytes": 4,
+            "role": "track",
+            "launchable": false,
+            "disc_index": 1,
+            "group_id": 200
+          },
+          {
+            "id": 22,
+            "file_name": "Example Game (USA) (Track 02).bin",
+            "file_size_bytes": 4,
+            "role": "track",
+            "launchable": false,
+            "disc_index": 1,
+            "group_id": 200
+          }
+        ],
+        "dependencies": [
+          {
+            "parent_file_id": 20,
+            "child_file_id": 21,
+            "dependency_kind": "cue_file",
+            "sort_index": 0
+          },
+          {
+            "parent_file_id": 20,
+            "child_file_id": 22,
+            "dependency_kind": "cue_file",
+            "sort_index": 1
+          }
+        ]
+      },
+      "expected_closure": [
+        20,
+        21,
+        22
+      ],
+      "file_bytes_base64": {
+        "20": "RklMRSAiRXhhbXBsZSBHYW1lIChVU0EpIChUcmFjayAwMSkuYmluIiBCSU5BUlkKICBUUkFDSyAwMSBNT0RFMi8yMzUyCkZJTEUgIkV4YW1wbGUgR2FtZSAoVVNBKSAoVHJhY2sgMDIpLmJpbiIgQklOQVJZCiAgVFJBQ0sgMDIgQVVESU8K",
+        "21": "AQIDBA==",
+        "22": "BQYHCA=="
+      }
+    },
+    {
+      "name": "gdi_with_tracks",
+      "plan": {
+        "rom_id": 3,
+        "preferred_file_id": 30,
+        "files": [
+          {
+            "id": 30,
+            "file_name": "Dream Example (USA).gdi",
+            "file_size_bytes": 56,
+            "role": "descriptor",
+            "launchable": true,
+            "disc_index": 1,
+            "group_id": 300
+          },
+          {
+            "id": 31,
+            "file_name": "track01.bin",
+            "file_size_bytes": 4,
+            "role": "track",
+            "launchable": false,
+            "disc_index": 1,
+            "group_id": 300
+          },
+          {
+            "id": 32,
+            "file_name": "track02.raw",
+            "file_size_bytes": 4,
+            "role": "track",
+            "launchable": false,
+            "disc_index": 1,
+            "group_id": 300
+          }
+        ],
+        "dependencies": [
+          {
+            "parent_file_id": 30,
+            "child_file_id": 31,
+            "dependency_kind": "gdi_track",
+            "sort_index": 0
+          },
+          {
+            "parent_file_id": 30,
+            "child_file_id": 32,
+            "dependency_kind": "gdi_track",
+            "sort_index": 1
+          }
+        ]
+      },
+      "expected_closure": [
+        30,
+        31,
+        32
+      ],
+      "file_bytes_base64": {
+        "30": "MgoxIDAgNCAyMzUyIHRyYWNrMDEuYmluIDAKMiA0NTAwMCAwIDIzNTIgdHJhY2swMi5yYXcgMAo=",
+        "31": "CQoLDA==",
+        "32": "DQ4PEA=="
+      }
+    },
+    {
+      "name": "generated_m3u_multidisc",
+      "plan": {
+        "rom_id": 4,
+        "preferred_file_id": 40,
+        "files": [
+          {
+            "id": 40,
+            "file_name": "Saga Collection (USA).m3u",
+            "file_size_bytes": 70,
+            "role": "launch_manifest",
+            "launchable": true,
+            "disc_index": null,
+            "group_id": 400
+          },
+          {
+            "id": 41,
+            "file_name": "Saga Collection (USA) (Disc 1).chd",
+            "file_size_bytes": 5,
+            "role": "disc_image",
+            "launchable": true,
+            "disc_index": 1,
+            "group_id": 401
+          },
+          {
+            "id": 42,
+            "file_name": "Saga Collection (USA) (Disc 2).chd",
+            "file_size_bytes": 5,
+            "role": "disc_image",
+            "launchable": true,
+            "disc_index": 2,
+            "group_id": 402
+          }
+        ],
+        "dependencies": [
+          {
+            "parent_file_id": 40,
+            "child_file_id": 41,
+            "dependency_kind": "playlist_entry",
+            "sort_index": 0
+          },
+          {
+            "parent_file_id": 40,
+            "child_file_id": 42,
+            "dependency_kind": "playlist_entry",
+            "sort_index": 1
+          }
+        ]
+      },
+      "expected_closure": [
+        40,
+        41,
+        42
+      ],
+      "file_bytes_base64": {
+        "40": "U2FnYSBDb2xsZWN0aW9uIChVU0EpIChEaXNjIDEpLmNoZApTYWdhIENvbGxlY3Rpb24gKFVTQSkgKERpc2MgMikuY2hkCg==",
+        "41": "ZGlzYzE=",
+        "42": "ZGlzYzI="
+      }
+    },
+    {
+      "name": "user_supplied_m3u_order",
+      "plan": {
+        "rom_id": 5,
+        "preferred_file_id": 50,
+        "files": [
+          {
+            "id": 50,
+            "file_name": "Custom Order [Fan].m3u",
+            "file_size_bytes": 48,
+            "role": "launch_manifest",
+            "launchable": true,
+            "disc_index": null,
+            "group_id": 500
+          },
+          {
+            "id": 52,
+            "file_name": "Bonus Disc (Unicode ä).chd",
+            "file_size_bytes": 5,
+            "role": "disc_image",
+            "launchable": true,
+            "disc_index": 2,
+            "group_id": 502
+          },
+          {
+            "id": 51,
+            "file_name": "Main Disc (USA).chd",
+            "file_size_bytes": 4,
+            "role": "disc_image",
+            "launchable": true,
+            "disc_index": 1,
+            "group_id": 501
+          }
+        ],
+        "dependencies": [
+          {
+            "parent_file_id": 50,
+            "child_file_id": 52,
+            "dependency_kind": "playlist_entry",
+            "sort_index": 0
+          },
+          {
+            "parent_file_id": 50,
+            "child_file_id": 51,
+            "dependency_kind": "playlist_entry",
+            "sort_index": 1
+          }
+        ]
+      },
+      "expected_closure": [
+        50,
+        52,
+        51
+      ],
+      "file_bytes_base64": {
+        "50": "Qm9udXMgRGlzYyAoVW5pY29kZSDDpCkuY2hkCk1haW4gRGlzYyAoVVNBKS5jaGQK",
+        "51": "bWFpbg==",
+        "52": "Ym9udXM="
+      }
+    }
+  ]
+}

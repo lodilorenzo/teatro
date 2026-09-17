@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install stable Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+      - name: Check formatting
+        run: cargo +stable fmt --all -- --check
+      - name: Run Clippy
+        run: cargo +stable clippy --locked --all-targets --all-features -- -D warnings
+      - name: Run tests
+        run: cargo +stable test --locked --all-targets
+      - name: Run documentation tests
+        run: cargo +stable test --locked --doc
+
+  msrv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install Rust 1.88.0
+        run: rustup toolchain install 1.88.0 --profile minimal
+      - name: Test minimum Rust version
+        run: cargo +1.88.0 test --locked --all-targets
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          find web -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
+          node --check scripts/test-browser-downloads.mjs
+      - name: Test admin interface
+        run: cd web/admin && npm test
+      - name: Test player interface
+        run: cd web/public && npm test
+
+  shell-and-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Check shell syntax
+        run: |
+          bash -n run-dev.sh packaging/innoextract/version.env
+          find scripts -type f -name '*.sh' -print0 | sort -z | xargs -0 bash -n
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install --yes shellcheck
+      - name: Run ShellCheck
+        run: |
+          shellcheck run-dev.sh
+          find scripts -type f -name '*.sh' -print0 | sort -z | xargs -0 shellcheck
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --version 0.22.2 --locked
+      - name: Test conditional advisory exception
+        run: scripts/test-audit-dependencies.sh
+      - name: Audit dependencies
+        run: scripts/audit-dependencies.sh
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build local image
+        run: docker build --progress=plain --tag teatro:ci .
+      - name: Test fresh-volume startup and persistence
+        run: scripts/test-docker-image.sh teatro:ci

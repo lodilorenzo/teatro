@@ -1,0 +1,223 @@
+{
+  "contract": {
+    "create_http_status": 202,
+    "location": "/api/admin/gog-imports/gog_opaque_id",
+    "job_states": [
+      "queued",
+      "running",
+      "succeeded",
+      "failed",
+      "cancelled"
+    ],
+    "phases": [
+      "queued",
+      "validate_request",
+      "resolve_windows_target",
+      "verify_innoextract_hash",
+      "prepare_private_workspace",
+      "stage_setup_files",
+      "probe_innoextract_version",
+      "probe_installer_data_version",
+      "test_installer_integrity",
+      "extract_installer_payload",
+      "validate_extracted_tree",
+      "create_windows_zip",
+      "finalize_windows_zip",
+      "validate_sipario_zip",
+      "stage_generated_archive",
+      "publish_windows_archive",
+      "cleanup_uploaded_setup_staging",
+      "complete"
+    ],
+    "progress_kinds": [
+      "percent",
+      "bytes"
+    ],
+    "event_kinds": [
+      "phase",
+      "output"
+    ],
+    "output_streams": [
+      "stdout",
+      "stderr"
+    ],
+    "limits": {
+      "terminal_job_capacity": 64,
+      "terminal_retention_seconds": 3600,
+      "event_text_bytes": 262144,
+      "event_entries": 512,
+      "display_entry_bytes": 4096,
+      "progress_updates_per_second": 10,
+      "browser_poll_interval_ms": 750,
+      "browser_transcript_entries": 512
+    },
+    "transcript_overflow": "evict_oldest_output_preserve_phase_events",
+    "browser_job_id_storage": "session_storage"
+  },
+  "create_response": {
+    "job": {
+      "id": "gog_opaque_id",
+      "state": "queued",
+      "phase": "queued",
+      "progress": null,
+      "output_truncated": false,
+      "last_event_seq": 0,
+      "created_at": "2026-07-11T20:00:00Z",
+      "updated_at": "2026-07-11T20:00:00Z"
+    },
+    "status_url": "/api/admin/gog-imports/gog_opaque_id"
+  },
+  "running_percent_response": {
+    "id": "gog_opaque_id",
+    "state": "running",
+    "phase": "extract_installer_payload",
+    "progress": {
+      "kind": "percent",
+      "current": null,
+      "total": null,
+      "percent": 42.5
+    },
+    "events": [
+      {
+        "seq": 11,
+        "kind": "phase",
+        "phase": "extract_installer_payload",
+        "stream": null,
+        "text": "Extracting installer payload"
+      },
+      {
+        "seq": 12,
+        "kind": "output",
+        "phase": "extract_installer_payload",
+        "stream": "stdout",
+        "text": "42.5% 38.1 MiB/s"
+      }
+    ],
+    "next_event_seq": 12,
+    "output_truncated": false,
+    "result": null,
+    "error": null,
+    "created_at": "2026-07-11T20:00:00Z",
+    "updated_at": "2026-07-11T20:03:00Z"
+  },
+  "running_bytes_response": {
+    "id": "gog_opaque_id",
+    "state": "running",
+    "phase": "create_windows_zip",
+    "progress": {
+      "kind": "bytes",
+      "current": 2147483648,
+      "total": 4294967296,
+      "percent": 50.0
+    },
+    "events": [
+      {
+        "seq": 13,
+        "kind": "output",
+        "phase": "extract_installer_payload",
+        "stream": "stdout",
+        "text": "100.0% 42.3 MiB/s"
+      },
+      {
+        "seq": 14,
+        "kind": "phase",
+        "phase": "create_windows_zip",
+        "stream": null,
+        "text": "Creating Windows ZIP"
+      }
+    ],
+    "next_event_seq": 14,
+    "output_truncated": false,
+    "result": null,
+    "error": null,
+    "created_at": "2026-07-11T20:00:00Z",
+    "updated_at": "2026-07-11T20:04:00Z"
+  },
+  "succeeded_response": {
+    "id": "gog_opaque_id",
+    "state": "succeeded",
+    "phase": "complete",
+    "progress": null,
+    "events": [
+      {
+        "seq": 20,
+        "kind": "phase",
+        "phase": "complete",
+        "stream": null,
+        "text": "GOG setup import complete"
+      }
+    ],
+    "next_event_seq": 20,
+    "output_truncated": false,
+    "result": {
+      "rom": {
+        "id": 42,
+        "name": "Example Game",
+        "slug": "example-game",
+        "platform_id": 157,
+        "platform_slug": "win",
+        "platform_display_name": "Windows",
+        "regions": [],
+        "metadatum": {},
+        "summary": null,
+        "fs_name": "Example Game.zip",
+        "fs_size_bytes": 123456,
+        "path_cover_large": null,
+        "path_cover_small": null,
+        "url_cover": null,
+        "files": [
+          {
+            "id": 52,
+            "file_name": "Example Game.zip",
+            "file_size_bytes": 123456,
+            "role": "content",
+            "launchable": true,
+            "disc_index": null,
+            "group_id": 9
+          }
+        ]
+      },
+      "file_id": 52,
+      "file_name": "Example Game.zip",
+      "relative_path": "win/Example Game.zip",
+      "file_size_bytes": 123456,
+      "import": {
+        "input_file_count": 2,
+        "input_bytes": 120000,
+        "extracted_file_count": 85,
+        "extracted_bytes": 250000,
+        "launcher_count": 1,
+        "archive_bytes": 123456,
+        "extractor_version": "innoextract 1.10-dev",
+        "data_version": "6.3.3"
+      }
+    },
+    "error": null,
+    "created_at": "2026-07-11T20:00:00Z",
+    "updated_at": "2026-07-11T20:05:00Z"
+  },
+  "failed_response": {
+    "id": "gog_opaque_id",
+    "state": "failed",
+    "phase": "extract_installer_payload",
+    "progress": null,
+    "events": [
+      {
+        "seq": 12,
+        "kind": "phase",
+        "phase": "extract_installer_payload",
+        "stream": null,
+        "text": "Extracting installer payload"
+      }
+    ],
+    "next_event_seq": 12,
+    "output_truncated": false,
+    "result": null,
+    "error": {
+      "code": "unprocessable_entity",
+      "message": "innoextract rejected the setup during extraction"
+    },
+    "created_at": "2026-07-11T20:00:00Z",
+    "updated_at": "2026-07-11T20:03:30Z"
+  }
+}

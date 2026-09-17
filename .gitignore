@@ -1,0 +1,55 @@
+# Rust
+/target/
+
+# Local runtime data and libraries
+/data/
+/roms/
+/platform_imgs/
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets and environment
+.env
+.env.*
+!.env.example
+igdb_config.json
+igdb_secret.txt
+credentials.json
+secrets.*
+*.secrets.sh
+
+# Build and release artifacts
+/dist/
+
+# Logs and temporary files
+*.log
+*.err
+*.part
+*.tmp
+/tmp/
+
+# Editor/OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python/Node leftovers from sibling prototypes
+.pydeps/
+.pydeps-test/
+.venv/
+node_modules/
+dist/
+
+# Local-only deployment and release artifacts
+.local.portainer.env
+/*.tar.gz
+
+# Impeccable local review and decision output
+.impeccable/questions/
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/config.local.json

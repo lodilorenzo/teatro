@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#090607" />
+    <title>Set up Teatro</title>
+    <link rel="icon" type="image/svg+xml" href="/admin/favicon.svg?icon=teatro-controller" />
+    <link rel="stylesheet" href="/admin/app.css" />
+  </head>
+  <body>
+    <div class="login-page">
+      <header class="login-header">
+        <div class="brand">
+          <img class="brand-mark" src="/admin/favicon.svg?icon=teatro-controller" alt="" />
+          <div class="brand-name">
+            <strong>Teatro</strong><small>Initial setup</small>
+            <span id="version-label" class="version-label"></span>
+          </div>
+        </div>
+      </header>
+      <main class="login-shell">
+        <section class="login-panel" aria-labelledby="setup-heading">
+          <h1 id="setup-heading">Create admin account</h1>
+          <p class="muted">Setup closes once the first administrator is created.</p>
+          <div id="setup-error" class="error" role="alert" hidden></div>
+          <form id="setup-form">
+            <label><span>Username</span><input name="username" autocomplete="username" maxlength="128" required autofocus /></label>
+            <label><span>Password</span><input name="password" type="password" autocomplete="new-password" required /></label>
+            <label><span>Confirm password</span><input name="password_confirmation" type="password" autocomplete="new-password" required /></label>
+            <label class="checkbox"><input name="remember_me" type="checkbox" /> Remember me for 30 days</label>
+            <button class="primary" type="submit">Create account</button>
+          </form>
+          <p class="login-security"><span>Complete setup only from a trusted network. The first client to submit this form becomes the administrator.</span></p>
+          <small class="server-address">Server <code id="server-address"></code></small>
+        </section>
+      </main>
+      <footer class="login-footer"><span>Teatro</span><span>Initial setup</span></footer>
+    </div>
+    <script type="module" src="/setup/main.js"></script>
+  </body>
+</html>

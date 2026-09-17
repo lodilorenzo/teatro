@@ -1,0 +1,212 @@
+{
+  "contract": {
+    "recognized_prefix": "setup_ (ASCII case-insensitive)",
+    "max_filename_utf8_bytes": 255,
+    "max_selection_files": 256,
+    "max_parenthesized_metadata_tokens": 8,
+    "max_display_tokens": 64,
+    "unicode_normalization": "NFC",
+    "build_id_digits": "4-12 parenthesized ASCII digits",
+    "dotted_version": "optional v, 2-6 numeric components of 1-6 digits, optional 1-8 character letter-led alphanumeric suffix",
+    "release_date": "valid YYYY-MM-DD, optionally followed by one 6-16 digit hexadecimal revision",
+    "explicit_release": "build_ or version_ followed by a 1-64 character ASCII letter/digit/dot/underscore/hyphen value containing a digit",
+    "high_hint": "Suggested from the setup filename. Review capitalization, punctuation, and subtitles before importing.",
+    "medium_hint": "Suggested from the setup filename with limited release evidence. Carefully review the game name, capitalization, punctuation, and subtitles before importing."
+  },
+  "cases": [
+    {
+      "id": "public-ftl-advanced-edition",
+      "kind": "public",
+      "source_url": "https://github.com/hippie68/gogcheck/blob/47eafd69c584009965c9edf6a3cf2104866d084c/README.md#L72-L76",
+      "filename": "setup_ftl_advanced_edition_1.6.13b_(36400).exe",
+      "expected": { "title": "Ftl Advanced Edition", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "public-witcher-adventure-game",
+      "kind": "public",
+      "source_url": "https://github.com/hippie68/gogcheck/blob/47eafd69c584009965c9edf6a3cf2104866d084c/README.md#L72-L76",
+      "filename": "setup_the_witcher_adventure_game_1.2.5a_(12082).exe",
+      "expected": { "title": "The Witcher Adventure Game", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "public-terraria",
+      "kind": "public",
+      "source_url": "https://github.com/hippie68/gogcheck/blob/47eafd69c584009965c9edf6a3cf2104866d084c/README.md#L72-L76",
+      "filename": "setup_terraria_v1.4.1.2_(42619).exe",
+      "expected": { "title": "Terraria", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "public-teenagent",
+      "kind": "public",
+      "source_url": "https://github.com/luducat/luducat/blob/606d899a4beaa6f5f7d432f9e0361de2a4304c4d/luducat/core/download_handlers/gog.py#L33-L43",
+      "filename": "setup_teenagent_2.1.0.5_(15215).exe",
+      "expected": { "title": "Teenagent", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "public-incomplete-canonical-title",
+      "kind": "public",
+      "source_url": "https://github.com/aleksandarristic/gog-cli/blob/a65b78f6531652b210b60fee69c1c39a72a1a900/docs/cli-reference.md#L388-L446",
+      "filename": "setup_the_witcher_3_1.3.6.exe",
+      "expected": { "title": "The Witcher 3", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "public-broken-sword",
+      "kind": "public",
+      "source_url": "https://github.com/JosefNemec/Playnite/issues/1829",
+      "filename": "setup_broken_sword_4_the_angel_of_death_1.1a_(24519).exe",
+      "expected": { "title": "Broken Sword 4 the Angel of Death", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "public-architecture",
+      "kind": "public",
+      "source_url": "https://hybrid-analysis.com/sample/3c20d2b054d3616252174d8d1885c13351dbc44e4e4c2285efe78f16906c0164/68256dfc9d91b9ad0d06b4ef",
+      "filename": "setup_cyberpunk_2077_2.21_(64bit)_(79356).exe",
+      "expected": { "title": "Cyberpunk 2077", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "public-explicit-build-release",
+      "kind": "public",
+      "source_url": "https://gist.github.com/myyc/4b57f9a5637362d37961a10cd32b8f0b",
+      "filename": "setup_cyberpunk_2077_build_3551602change_4457769_galaxydll_(64bit)_(50001).exe",
+      "expected": { "title": "Cyberpunk 2077", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-bare-sequel-number",
+      "kind": "synthetic",
+      "filename": "setup_quake_2.exe",
+      "expected": { "title": "Quake 2", "confidence": "medium", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-bare-title-year",
+      "kind": "synthetic",
+      "filename": "setup_1984.exe",
+      "expected": { "title": "1984", "confidence": "medium", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-four-digit-parenthesized-build",
+      "kind": "synthetic",
+      "filename": "setup_numbered_game_(9709).exe",
+      "expected": { "title": "Numbered Game", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-short-parenthesized-number-retained",
+      "kind": "synthetic",
+      "filename": "setup_numbered_game_(123).exe",
+      "expected": { "title": "Numbered Game (123)", "confidence": "medium", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-all-architecture-markers",
+      "kind": "synthetic",
+      "filename": "SETUP_architecture_game_(x86)_(x64)_(32bit)_(64bit).EXE",
+      "expected": { "title": "Architecture Game", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-valid-date-and-hash",
+      "kind": "synthetic",
+      "filename": "setup_release_calendar_game_2024-02-29_deadbeef.exe",
+      "expected": { "title": "Release Calendar Game", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-valid-date",
+      "kind": "synthetic",
+      "filename": "setup_release_calendar_game_2025-12-31.exe",
+      "expected": { "title": "Release Calendar Game", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-invalid-date-retained",
+      "kind": "synthetic",
+      "filename": "setup_release_calendar_game_2025-02-29_deadbeef.exe",
+      "expected": { "title": "Release Calendar Game 2025-02-29 Deadbeef", "confidence": "medium", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-explicit-version",
+      "kind": "synthetic",
+      "filename": "setup_marker_game_version_v2.0-hotfix1.exe",
+      "expected": { "title": "Marker Game", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-marker-without-number-retained",
+      "kind": "synthetic",
+      "filename": "setup_marker_game_build_release.exe",
+      "expected": { "title": "Marker Game Build Release", "confidence": "medium", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-mixed-case-preserved",
+      "kind": "synthetic",
+      "filename": "setup_eFootball_McPixel_1.0.0.exe",
+      "expected": { "title": "eFootball McPixel", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-uppercase-acronym-preserved",
+      "kind": "synthetic",
+      "filename": "setup_FTL_advanced_edition_1.6.13b.exe",
+      "expected": { "title": "FTL Advanced Edition", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-lowercase-acronym-not-invented",
+      "kind": "synthetic",
+      "filename": "setup_ftl_advanced_edition_1.6.13b.exe",
+      "expected": { "title": "Ftl Advanced Edition", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-roman-numeral",
+      "kind": "synthetic",
+      "filename": "setup_kingdom_hearts_iii_1.0.0.exe",
+      "expected": { "title": "Kingdom Hearts III", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-unicode-nfc",
+      "kind": "synthetic",
+      "filename": "setup_café_del_mar_1.0.0.exe",
+      "expected": { "title": "Café Del Mar", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-internal-hyphens",
+      "kind": "synthetic",
+      "filename": "setup_life-is-strange_1.0.0.exe",
+      "expected": { "title": "Life-Is-Strange", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "synthetic-separator-runs",
+      "kind": "synthetic",
+      "filename": "setup___adversarial---separator____game___1.0.0.exe",
+      "expected": { "title": "Adversarial-Separator Game", "confidence": "high", "source": "gog_setup_filename" }
+    },
+    {
+      "id": "negative-generic-setup",
+      "kind": "synthetic",
+      "filename": "setup.exe",
+      "expected": null
+    },
+    {
+      "id": "negative-patch-prefix",
+      "kind": "synthetic",
+      "filename": "patch_terraria_v1.4.1.2_(42619).exe",
+      "expected": null
+    },
+    {
+      "id": "negative-unrecognized-prefix",
+      "kind": "synthetic",
+      "filename": "game.exe",
+      "expected": null
+    },
+    {
+      "id": "negative-empty-slug",
+      "kind": "synthetic",
+      "filename": "setup____.exe",
+      "expected": null
+    },
+    {
+      "id": "negative-control-character",
+      "kind": "synthetic",
+      "filename": "setup_bad\u0000game.exe",
+      "expected": null
+    },
+    {
+      "id": "negative-nested-path",
+      "kind": "synthetic",
+      "filename": "folder/setup_game.exe",
+      "expected": null
+    }
+  ]
+}
