@@ -2,6 +2,9 @@
 !.dockerignore
 !Cargo.toml
 !Cargo.lock
+!LICENSE
+!RUST_DEPENDENCY_LICENSES.tsv
+!THIRD_PARTY_NOTICES.md
 !README.md
 !.env.example
 !build.rs
@@ -21,4 +24,8 @@
 !packaging/
 !packaging/innoextract/
 !packaging/THIRD_PARTY_NOTICES.md
+!packaging/collect-rust-notices.py
+!packaging/trivy-ignore.yaml
+!packaging/licenses/
+!packaging/licenses/**
 !packaging/innoextract/version.env

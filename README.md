@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-  <a href="Cargo.toml"><img src="https://img.shields.io/badge/version-v0.19.6-633436?style=flat-square" alt="Teatro version"></a>
+  <a href="Cargo.toml"><img src="https://img.shields.io/badge/version-v0.19.7-633436?style=flat-square" alt="Teatro version"></a>
   <a href="#limits-and-release-status"><img src="https://img.shields.io/badge/status-beta-bd4444?style=flat-square" alt="Status: beta"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC_BY--NC--SA_4.0-633436?style=flat-square" alt="License: CC BY-NC-SA 4.0"></a>
   <a href="docs/development.md#run-from-source"><img src="https://img.shields.io/badge/Rust-1.88%2B-bd4444?style=flat-square" alt="Rust: 1.88 or newer"></a>
@@ -16,9 +16,10 @@ catalog; game files remain visible on disk. Teatro does not supply games or run
 emulators. Import only content you have permission to use.
 
 Teatro is beta, noncommercial source-available software under
-[CC BY-NC-SA 4.0](LICENSE). Docker is the main deployment method, but no supported
-binary or container distribution has been published. Build your own image from
-this source. The current version is defined in [`Cargo.toml`](Cargo.toml).
+[CC BY-NC-SA 4.0](LICENSE). Docker is the main deployment method. Build from source
+or check [beta image availability and verification](docs/docker.md#use-a-published-beta-image).
+There is no stable binary release. The current version is defined in
+[`Cargo.toml`](Cargo.toml).
 
 ## Features
 
@@ -67,6 +68,7 @@ All documentation is included here; no wiki is required.
 | [Configuration](docs/configuration.md) | Environment variables, defaults, limits and credential storage. |
 | [API reference](docs/api.md) | Authentication, read/download contract and all management endpoint groups. |
 | [Development](docs/development.md) | Source builds, checks and project structure. |
+| [Beta image publication](docs/image-publication.md) | Native builds, security exceptions, SBOMs, signatures and publication gates. |
 | [Security policy](SECURITY.md) | Supported versions and private vulnerability reporting. |
 
 ## Limits and release status
@@ -77,9 +79,10 @@ has not been validated against a live server. Server-side import jobs do not
 resume after a restart. Archives are hashed as files, not by their members;
 split archives and ClrMamePro text DATs are unsupported.
 
-The Docker recipe targets native `linux/amd64` and `linux/arm64` builds. Local
-amd64 checks are not a guarantee for every host or architecture. Release-qualified
-images, signed distributions and client validation across devices remain pending.
+The Docker recipe and beta publishing workflow target native `linux/amd64` and
+`linux/arm64` builds. Review the [image security policy](docs/image-publication.md)
+before deployment. Stable-release qualification, production recovery,
+independent reproducibility and client validation across devices remain pending.
 
 ## License and security
 

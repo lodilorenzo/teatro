@@ -5,6 +5,10 @@ services:
       dockerfile: Dockerfile
     image: "${TEATRO_IMAGE:-teatro:local}"
     restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       TEATRO_BIND_ADDR: "${TEATRO_BIND_ADDR:-0.0.0.0:4440}"
       TEATRO_DATABASE_URL: "${TEATRO_DATABASE_URL:-sqlite:///data/teatro.sqlite3}"

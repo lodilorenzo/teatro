@@ -1,9 +1,29 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
 
-FROM rust:1.88.0-bullseye@sha256:b315f988b86912bafa7afd39a6ded0a497bf850ec36578ca9a3bdd6a14d5db4e AS teatro-builder
+FROM rust:1.88.0-bookworm@sha256:af306cfa71d987911a781c37b59d7d67d934f49684058f96cf72079c3626bfe0 AS teatro-builder
+
+ARG TARGETARCH
+ARG BUILD_JOBS=2
+
+# Use distro-maintained SQLite instead of the older C copy inside libsqlite3-sys.
+ENV LIBSQLITE3_SYS_USE_PKG_CONFIG=1
+RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
+    && printf '%s\n' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z bookworm main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260917T000000Z bookworm-security main' \
+      > /etc/apt/sources.list \
+    && apt-get update \
+    && apt-get install --no-install-recommends -y libsqlite3-dev pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Embed Rust metadata for scanners; retain Cargo tree separately to show active dependencies.
+RUN --mount=type=cache,id=teatro-docker-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
+    cargo install cargo-auditable --version 0.7.6 --locked --jobs "$BUILD_JOBS"
 
 WORKDIR /source
-COPY Cargo.toml Cargo.lock build.rs ./
+COPY Cargo.toml Cargo.lock build.rs RUST_DEPENDENCY_LICENSES.tsv ./
+COPY packaging/collect-rust-notices.py packaging/collect-rust-notices.py
+COPY packaging/licenses packaging/licenses
 COPY migrations ./migrations
 COPY src ./src
 COPY web/admin ./web/admin
@@ -12,24 +32,32 @@ COPY web/public ./web/public
 COPY web/fonts ./web/fonts
 RUN --mount=type=cache,id=teatro-docker-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,id=teatro-docker-cargo-git,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,id=teatro-docker-target,target=/source/target,sharing=locked \
-    cargo build --release --locked --bin teatro \
-    && install -Dm755 target/release/teatro /out/teatro
+    --mount=type=cache,id=teatro-docker-auditable-sqlite-target-${TARGETARCH},target=/source/target,sharing=locked \
+    cargo fetch --locked \
+    && cargo auditable build --release --locked --bin teatro --jobs "$BUILD_JOBS" \
+    && install -Dm755 target/release/teatro /out/teatro \
+    && readelf --sections /out/teatro > /out/sections.txt \
+    && grep --fixed-strings '.dep-v0' /out/sections.txt \
+    && readelf --dynamic /out/teatro > /out/dynamic.txt \
+    && grep --fixed-strings '[libsqlite3.so.0]' /out/dynamic.txt \
+    && python3 packaging/collect-rust-notices.py /out/rust-notices
 
 # Build the pinned extractor as a separate executable with its source and notices.
-FROM debian:bullseye-20260623-slim@sha256:f18adf4e1d04b1d8ba48025b8e35003f4c748ddd3dd8e875fe4e7d9a9c0dec84 AS innoextract-builder
+FROM debian:trixie-20260824-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132 AS innoextract-builder
 
 ARG TARGETARCH
 ARG TARGETPLATFORM
+ARG BUILD_JOBS=2
+ARG BUILDKIT_SBOM_SCAN_STAGE=true
 ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=C.UTF-8 \
     TZ=UTC
 
 RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
     && printf '%s\n' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260623T000000Z bullseye main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260623T000000Z bullseye-updates main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260623T000000Z bullseye-security main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z trixie main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z trixie-updates main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260917T000000Z trixie-security main' \
       > /etc/apt/sources.list \
     && printf 'Acquire::Check-Valid-Until "false";\nAcquire::Retries "3";\n' \
       > /etc/apt/apt.conf.d/99teatro-snapshot \
@@ -46,6 +74,7 @@ RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
       libboost-all-dev \
       libbz2-dev \
       liblzma-dev \
+      libzstd-dev \
       make \
       sed \
       tar \
@@ -77,7 +106,7 @@ RUN set -eu; \
       -DUSE_LD=bfd \
       -DUSE_LTO=OFF \
       -DUSE_STATIC_LIBS=ON; \
-    cmake --build /build/output --parallel; \
+    cmake --build /build/output --parallel "$BUILD_JOBS"; \
     cmake --build /build/output --target check; \
     /build/output/innoextract --version > /build/innoextract-version.txt; \
     grep --fixed-strings "innoextract $INNOEXTRACT_VERSION" /build/innoextract-version.txt; \
@@ -107,15 +136,15 @@ RUN set -eu; \
       esac; \
     done < /bundle/third-party/innoextract/runtime-libraries.txt; \
     case "$TARGETARCH" in \
-      amd64) build_base_manifest='sha256:7d5a9679452f9a25d9c8ef2fcb3b9ba0cd1653799a998591292aec1679fad7a2' ;; \
-      arm64) build_base_manifest='sha256:870eec5563fbee751e2c7a47548dc233b0d4f9363ed982c62fad914077dd5c6e' ;; \
+      amd64) build_base_manifest='sha256:abc9cb88a5587630d7f915f47b23b0668fe250fbfc6457aa4d52b534c1bbf73f' ;; \
+      arm64) build_base_manifest='sha256:7215f78f35ffe58fe13f244fac9c4f21326d55187271fbb3e1a8aa5cc7e387ab' ;; \
       *) printf 'Unsupported target architecture: %s\n' "$TARGETARCH" >&2; exit 1 ;; \
     esac; \
     dpkg-query --show --showformat='${Package}\t${Version}\n' \
       | LC_ALL=C sort > /bundle/third-party/innoextract/build-packages.tsv; \
     for package in \
-      libboost1.74-dev libbz2-dev libgcc-10-dev liblzma-dev \
-      libstdc++-10-dev zlib1g-dev; do \
+      libboost1.83-dev libbz2-dev libgcc-14-dev liblzma-dev \
+      libstdc++-14-dev libzstd-dev zlib1g-dev; do \
         copyright="/usr/share/doc/$package/copyright"; \
         test -f "$copyright"; \
         cp -L "$copyright" "/bundle/third-party/innoextract/licenses/$package.copyright"; \
@@ -129,32 +158,45 @@ RUN set -eu; \
       "- Source SHA-256: $INNOEXTRACT_SOURCE_SHA256" \
       "- Reported version: $INNOEXTRACT_VERSION" \
       "- Declared maximum Inno Setup version: $INNOEXTRACT_MAX_INNO_SETUP_VERSION" \
-      '- Build base: debian:bullseye-20260623-slim' \
-      '- Build base index digest: sha256:f18adf4e1d04b1d8ba48025b8e35003f4c748ddd3dd8e875fe4e7d9a9c0dec84' \
+      '- Build base: debian:trixie-20260824-slim' \
+      '- Build base index digest: sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132' \
       "- Build base $TARGETPLATFORM manifest: $build_base_manifest" \
-      '- Debian package snapshot: 2026-06-23T00:00:00Z' \
-      '- Build mode: Release, GNU BFD linker, static Boost/liblzma/zlib/bzip2/libstdc++/libgcc, LTO disabled' \
+      '- Debian package snapshot: 2026-09-17T00:00:00Z' \
+      '- Build mode: Release, GNU BFD linker, static Boost/liblzma/zlib/bzip2/zstd/libstdc++/libgcc, LTO disabled' \
       > /bundle/third-party/innoextract/PROVENANCE.md
 
-FROM debian:bullseye-20260623-slim@sha256:f18adf4e1d04b1d8ba48025b8e35003f4c748ddd3dd8e875fe4e7d9a9c0dec84
+FROM debian:trixie-20260824-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132 AS runtime
 
 RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
     && printf '%s\n' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260623T000000Z bullseye main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260623T000000Z bullseye-updates main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260623T000000Z bullseye-security main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z trixie main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z trixie-updates main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260917T000000Z trixie-security main' \
       > /etc/apt/sources.list \
     && printf 'Acquire::Check-Valid-Until "false";\nAcquire::Retries "3";\n' \
       > /etc/apt/apt.conf.d/99teatro-snapshot \
     && apt-get update \
-    && apt-get install --no-install-recommends -y ca-certificates curl \
+    && apt-get upgrade --no-install-recommends -y \
+    && apt-get install --no-install-recommends -y ca-certificates curl libsqlite3-0 \
     && rm -rf /var/lib/apt/lists/* \
-    && install -d -o 10001 -g 10001 /data
+    && install -d -o 10001 -g 10001 /data \
+    && mkdir -p /usr/share/doc/teatro
+RUN dpkg-query --show --showformat='${Package}\t${Version}\n' > /tmp/runtime-packages \
+    && LC_ALL=C sort /tmp/runtime-packages > /usr/share/doc/teatro/runtime-packages.tsv \
+    && dpkg-query --show --showformat='${source:Package}=${source:Version}\n' > /tmp/runtime-sources \
+    && LC_ALL=C sort -u /tmp/runtime-sources > /usr/share/doc/teatro/runtime-sources.txt \
+    && rm /tmp/runtime-packages /tmp/runtime-sources \
+    && find / -xdev -type f -perm /6000 -exec chmod a-s {} +
 
 COPY --from=teatro-builder /out/teatro /opt/teatro/teatro
+COPY --from=teatro-builder /out/rust-notices /usr/share/doc/teatro/rust
+COPY LICENSE /usr/share/doc/teatro/LICENSE
+COPY THIRD_PARTY_NOTICES.md /usr/share/doc/teatro/SOURCE-THIRD-PARTY-NOTICES.md
+COPY web/public/platform-icons/LICENSE /usr/share/doc/teatro/PLATFORM-ICONS-CC0
 COPY --from=innoextract-builder /bundle/tools /opt/teatro/tools
 COPY --from=innoextract-builder /bundle/third-party/innoextract /usr/share/doc/teatro/innoextract
 COPY packaging/THIRD_PARTY_NOTICES.md /usr/share/doc/teatro/THIRD_PARTY_NOTICES.md
+COPY packaging/trivy-ignore.yaml /usr/share/doc/teatro/SECURITY-EXCEPTIONS.yaml
 COPY web/public/icons.LICENSE /usr/share/doc/teatro/LUCIDE-ICONS-LICENSE
 COPY web/fonts/AtkinsonHyperlegibleNext-OFL.txt /usr/share/doc/teatro/ATKINSON-HYPERLEGIBLE-NEXT-OFL
 
@@ -175,3 +217,23 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 ENTRYPOINT ["/opt/teatro/teatro"]
 CMD ["serve"]
+
+# Accompany runtime binaries with their exact Debian source, including patches.
+# Keep build-only download tooling out of the runtime image.
+FROM innoextract-builder AS runtime-sources
+ARG BUILDKIT_SBOM_SCAN_STAGE=false
+COPY --from=runtime /usr/share/doc/teatro/runtime-sources.txt /runtime-sources.txt
+RUN sed 's/^deb /deb-src /' /etc/apt/sources.list > /etc/apt/sources.list.d/source.list \
+    && apt-get update \
+    && mkdir /sources \
+    && cd /sources \
+    && while IFS= read -r package; do \
+      apt-get source --download-only --only-source "$package" || exit; \
+    done < /runtime-sources.txt \
+    && sha256sum ./* > SHA256SUMS
+
+FROM runtime
+COPY --from=runtime-sources /sources /usr/share/doc/teatro/debian-source
+LABEL org.opencontainers.image.source="https://github.com/lodilorenzo/teatro" \
+      org.opencontainers.image.licenses="CC-BY-NC-SA-4.0" \
+      org.opencontainers.image.description="Teatro beta; third-party components retain their own licenses"

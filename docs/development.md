@@ -15,6 +15,15 @@ cargo run --locked -- users create-admin --username admin
 cargo run --locked -- serve
 ```
 
+Plain Cargo builds bundle SQLite 3.46.0 through `libsqlite3-sys`. That C library
+has [known upstream vulnerabilities](https://www.sqlite.org/cves.html), including
+CVE-2025-6965. A clean Rust dependency scan does not cover them. The Docker recipe
+instead links Debian's patched SQLite; its image review does not qualify native
+builds. For a native system-library build, install your distribution's maintained
+SQLite development package and `pkg-config`, then set
+`LIBSQLITE3_SYS_USE_PKG_CONFIG=1` for Cargo. Review that library and test the result
+on your host before deployment.
+
 The first command prompts for a password. Open `http://127.0.0.1:4440/` or
 `http://127.0.0.1:4440/admin`. Alternatively start the server first and complete
 `/setup` locally. Running without a subcommand also starts the server.

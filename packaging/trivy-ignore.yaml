@@ -1,0 +1,189 @@
+{
+  "vulnerabilities": [
+    {
+      "id": "CVE-2025-69720",
+      "purls": [
+        "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.7",
+        "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "Affected infocmp program is not invoked by the service or checks. Arbitrary operator use is not covered. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-12064",
+      "purls": [
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "Curl is used for explicit loopback HTTP checks, not schemeless SFTP/SCP. Other curl use is not covered. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-16742",
+      "purls": [
+        "pkg:deb/debian/libsystemd0@257.13-1~deb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libsystemd0@257.13-1~deb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libudev1@257.13-1~deb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libudev1@257.13-1~deb13u1?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "Affected systemd-homed service is absent; only system libraries are present. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-54369",
+      "purls": [
+        "pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "Service has no elevated filesystem privileges or ACL administration tools. Root/custom operations are not covered. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-76642",
+      "purls": [
+        "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "No privileged mount post-hooks; capabilities dropped and setuid bits removed. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-78408",
+      "purls": [
+        "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "Service does not invoke nsenter or enter host namespaces. Privileged administration is not covered. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-78409",
+      "purls": [
+        "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "No fstab-authorized X-mount.subdir operations or mount capabilities in the supported service. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-78410",
+      "purls": [
+        "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7&epoch=1",
+        "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "No SUID mount binary or mount capabilities in the supported service. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-8286",
+      "purls": [
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "Loopback HTTP curl checks do not use STARTTLS or sequential transfers. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-8458",
+      "purls": [
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "No Negotiate-authenticated libcurl client or reused transfer pool. Integrations use Rust reqwest. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-8927",
+      "purls": [
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "Each loopback curl invocation makes one transfer; no sequential proxy-authenticated transfers. Owner-approved beta exception on 2026-09-17; not a package fix."
+    },
+    {
+      "id": "CVE-2026-9538",
+      "purls": [
+        "pkg:deb/debian/perl-base@5.40.1-6%2Bdeb13u1?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/perl-base@5.40.1-6%2Bdeb13u1?arch=arm64&distro=debian-13.7"
+      ],
+      "expired_at": "2026-10-17T00:00:00Z",
+      "statement": "Affected Archive::Tar Perl module is absent, verified by a module-load check. Owner-approved beta exception on 2026-09-17; not a package fix."
+    }
+  ]
+}

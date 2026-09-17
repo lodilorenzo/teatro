@@ -14,8 +14,11 @@
 
 Requirements: a 64-bit Linux Docker engine, BuildKit, Compose v2, outbound access
 for the image build, and enough local disk space for games and temporary work.
-The recipe targets native amd64 and arm64. Neither a published image nor
-release-qualified support for every Docker host is available yet.
+The recipe targets native amd64 and arm64. Versioned beta images use the separate
+[publication workflow and security policy](image-publication.md). They are not a
+stable release or a guarantee of support for every Docker host.
+
+### Build from source
 
 From the repository root:
 
@@ -27,10 +30,40 @@ docker compose logs --tail=100 teatro
 ```
 
 The root [Dockerfile](../Dockerfile) builds Teatro and a pinned `innoextract`
-sidecar, checks the sidecar, and retains its notices. The runtime process runs
+sidecar, checks the sidecar, and retains notices and corresponding Debian sources.
+It uses Debian's maintained SQLite library rather than the older bundled C copy. The runtime process runs
 as UID/GID `10001:10001`, listens on port 4440, and handles Docker's stop signal.
 The [Compose file](../docker-compose.yml) supplies the persistent volume, health
-check inherited from the image, and `unless-stopped` restart policy.
+check inherited from the image, and `unless-stopped` restart policy. It drops all
+capabilities and prevents privilege gain. Keep these settings.
+
+### Use a published beta image
+
+First check the [package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
+for an available version and its successful publication run. There is no `latest`
+tag. Review the [known findings and limits](image-publication.md#known-findings-and-scanner-limits).
+Use the signed multi-platform index digest from that run, not an unverified tag:
+
+```bash
+set -euo pipefail
+IMAGE_DIGEST=sha256:REPLACE_WITH_VERIFIED_INDEX_DIGEST
+cosign verify "ghcr.io/lodilorenzo/teatro@$IMAGE_DIGEST" \
+  --certificate-identity 'https://github.com/lodilorenzo/teatro/.github/workflows/docker.yml@refs/heads/main' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+export TEATRO_IMAGE="ghcr.io/lodilorenzo/teatro@$IMAGE_DIGEST"
+docker compose config --quiet
+docker compose pull
+docker compose up --no-build -d
+```
+
+Use a current Cosign release supporting Sigstore bundles. Docker selects amd64
+or arm64 from the verified index. Image sources are included for redistribution
+compliance, so the download is larger than the executable alone. Keep the digest
+with your deployment configuration and backups. Also record the non-secret
+`TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro@sha256:...` value in Compose's local `.env`
+so later commands do not fall back to `teatro:local`.
+
+### Create the administrator
 
 Open `http://YOUR_SERVER:4440/setup` on a trusted network immediately. Anyone who
 can reach an unconfigured server can create its first administrator. Setup closes
@@ -210,6 +243,9 @@ docker compose up -d
 docker compose logs --tail=100 teatro
 curl --fail http://127.0.0.1:4440/healthz
 ```
+
+For a registry image, verify the new index signature, update `TEATRO_IMAGE`, then
+use `docker compose pull` and `docker compose up --no-build -d` instead of building.
 
 Startup applies embedded migrations and reconciles interrupted managed-file
 operations. Check login, library counts and downloads before discarding the backup.

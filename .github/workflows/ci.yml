@@ -64,6 +64,8 @@ jobs:
         run: |
           bash -n run-dev.sh packaging/innoextract/version.env
           find scripts -type f -name '*.sh' -print0 | sort -z | xargs -0 bash -n
+      - name: Test OCI validation
+        run: python3 packaging/test-verify-oci.py
       - name: Install ShellCheck
         run: sudo apt-get update && sudo apt-get install --yes shellcheck
       - name: Run ShellCheck
