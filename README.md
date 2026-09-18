@@ -7,7 +7,7 @@
   <a href="#limits-and-release-status"><img src="https://img.shields.io/badge/status-beta-bd4444?style=flat-square" alt="Status: beta"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC_BY--NC--SA_4.0-633436?style=flat-square" alt="License: CC BY-NC-SA 4.0"></a>
   <a href="docs/development.md#run-from-source"><img src="https://img.shields.io/badge/Rust-1.88%2B-bd4444?style=flat-square" alt="Rust: 1.88 or newer"></a>
-  <a href="docs/docker.md"><img src="https://img.shields.io/badge/Docker-source_build-633436?style=flat-square" alt="Docker: build from source"></a>
+  <a href="https://github.com/users/lodilorenzo/packages/container/package/teatro"><img src="https://img.shields.io/badge/Docker-GHCR_beta-633436?style=flat-square" alt="Docker: published beta images on GHCR"></a>
 </p>
 
 Teatro is a self-hosted game library server with a player library,
@@ -16,8 +16,9 @@ catalog; game files remain visible on disk. Teatro does not supply games or run
 emulators. Import only content you have permission to use.
 
 Teatro is beta, noncommercial source-available software under
-[CC BY-NC-SA 4.0](LICENSE). Docker is the main deployment method. Build from source
-or check [beta image availability and verification](docs/docker.md#use-a-published-beta-image).
+[CC BY-NC-SA 4.0](LICENSE). Docker is the main deployment method.
+[Published beta images on GHCR](https://github.com/users/lodilorenzo/packages/container/package/teatro)
+are available for Linux amd64 and arm64. No local compilation is needed.
 There is no stable binary release. The current version is defined in
 [`Cargo.toml`](Cargo.toml).
 
@@ -35,12 +36,35 @@ There is no stable binary release. The current version is defined in
 
 ## Quick start with Docker
 
-Use a Linux Docker engine with BuildKit, Compose v2 and local storage. From a
-checkout of this repository:
+Use a 64-bit Linux Docker engine, Compose v2, curl and local storage. Install a
+[current Cosign release](https://docs.sigstore.dev/cosign/system_config/installation/)
+to verify the image signature. You do not need Rust, BuildKit or a source checkout.
+
+For a **fresh installation**, restrict port 4440 to your trusted network first.
+Review the [beta security exceptions](docs/image-publication.md#known-findings-and-scanner-limits).
+The example pins the image from this [successful publication run](https://github.com/lodilorenzo/teatro/actions/runs/35287351279)
+and its matching Compose file. There is no `latest` tag.
 
 ```bash
-docker compose up --build -d
+set -euo pipefail
+mkdir teatro
+cd teatro
+curl --fail --location --output docker-compose.yml \
+  https://raw.githubusercontent.com/lodilorenzo/teatro/c713e1e7c53581a365fc3f2bbca6975ca6ded9d7/docker-compose.yml
+export TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro@sha256:9bbeb09704c57a6b3a3dc7b44feac4ee45a515adab3e68f800657ed6ac9fd3f8
+cosign verify "$TEATRO_IMAGE" \
+  --certificate-identity 'https://github.com/lodilorenzo/teatro/.github/workflows/docker.yml@refs/heads/main' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+printf 'TEATRO_IMAGE=%s\n' "$TEATRO_IMAGE" > .env
+docker compose config --quiet
+docker compose pull
+docker compose up --no-build -d
 ```
+
+Docker selects the native architecture. Keep `.env` with your Compose file so
+later commands keep using the verified image. For an existing deployment, follow
+[upgrade and rollback](docs/docker.md#upgrade-and-rollback) instead of repeating
+this fresh-install example.
 
 Open `http://YOUR_SERVER:4440/setup` and immediately create the first administrator.
 Then use `/` for the player library and `/admin` for administration. The default
@@ -54,6 +78,7 @@ from the host only, set `TEATRO_HOST_PORT=127.0.0.1:4440` in a local Compose `.e
 Read [Docker deployment](docs/docker.md) before using existing storage, changing
 permissions, or upgrading. The public baseline supports fresh installations,
 not databases from development snapshots with a different migration history.
+To compile your own Docker image, see [build from source](docs/docker.md#build-from-source).
 For a native build, see [development](docs/development.md#run-from-source).
 
 ## Documentation

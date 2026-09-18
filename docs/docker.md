@@ -12,56 +12,72 @@
 
 ## Install
 
-Requirements: a 64-bit Linux Docker engine, BuildKit, Compose v2, outbound access
-for the image build, and enough local disk space for games and temporary work.
-The recipe targets native amd64 and arm64. Versioned beta images use the separate
-[publication workflow and security policy](image-publication.md). They are not a
-stable release or a guarantee of support for every Docker host.
-
-### Build from source
-
-From the repository root:
-
-```bash
-docker compose config --quiet
-docker compose up --build -d
-docker compose ps
-docker compose logs --tail=100 teatro
-```
-
-The root [Dockerfile](../Dockerfile) builds Teatro and a pinned `innoextract`
-sidecar, checks the sidecar, and retains notices and corresponding Debian sources.
-It uses Debian's maintained SQLite library rather than the older bundled C copy. The runtime process runs
-as UID/GID `10001:10001`, listens on port 4440, and handles Docker's stop signal.
-The [Compose file](../docker-compose.yml) supplies the persistent volume, health
-check inherited from the image, and `unless-stopped` restart policy. It drops all
-capabilities and prevents privilege gain. Keep these settings.
+Requirements: a 64-bit Linux Docker engine, Compose v2, curl, outbound access to
+GHCR and enough local disk space for games and temporary work. Published beta
+images support native amd64 and arm64. No Rust toolchain or local build is needed.
+They are not a stable release or a guarantee of support for every Docker host.
 
 ### Use a published beta image
 
-First check the [package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
-for an available version and its successful publication run. There is no `latest`
-tag. Review the [known findings and limits](image-publication.md#known-findings-and-scanner-limits).
-Use the signed multi-platform index digest from that run, not an unverified tag:
+The [GHCR package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
+lists published versions. There is no `latest` tag. The example below pins the
+signed multi-platform index from this [successful publication run](https://github.com/lodilorenzo/teatro/actions/runs/35287351279)
+and downloads its matching Compose file.
+
+Install a [current Cosign release](https://docs.sigstore.dev/cosign/system_config/installation/)
+with Sigstore bundle support. Review the [known findings and limits](image-publication.md#known-findings-and-scanner-limits)
+before deploying. These images retain scoped vulnerability exceptions, not fixes
+for every finding.
+
+For a **fresh installation**, restrict port 4440 to your trusted network before
+starting. Run these Bash commands in a parent directory where a new `teatro`
+directory can be created. Existing deployments should use the
+[upgrade instructions](#upgrade-and-rollback), not overwrite their configuration.
 
 ```bash
 set -euo pipefail
-IMAGE_DIGEST=sha256:REPLACE_WITH_VERIFIED_INDEX_DIGEST
-cosign verify "ghcr.io/lodilorenzo/teatro@$IMAGE_DIGEST" \
+mkdir teatro
+cd teatro
+curl --fail --location --output docker-compose.yml \
+  https://raw.githubusercontent.com/lodilorenzo/teatro/c713e1e7c53581a365fc3f2bbca6975ca6ded9d7/docker-compose.yml
+export TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro@sha256:9bbeb09704c57a6b3a3dc7b44feac4ee45a515adab3e68f800657ed6ac9fd3f8
+cosign verify "$TEATRO_IMAGE" \
   --certificate-identity 'https://github.com/lodilorenzo/teatro/.github/workflows/docker.yml@refs/heads/main' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-export TEATRO_IMAGE="ghcr.io/lodilorenzo/teatro@$IMAGE_DIGEST"
+printf 'TEATRO_IMAGE=%s\n' "$TEATRO_IMAGE" > .env
 docker compose config --quiet
 docker compose pull
 docker compose up --no-build -d
 ```
 
-Use a current Cosign release supporting Sigstore bundles. Docker selects amd64
-or arm64 from the verified index. Image sources are included for redistribution
-compliance, so the download is larger than the executable alone. Keep the digest
-with your deployment configuration and backups. Also record the non-secret
-`TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro@sha256:...` value in Compose's local `.env`
-so later commands do not fall back to `teatro:local`.
+Docker selects amd64 or arm64 from the verified index. Keep the non-secret
+`TEATRO_IMAGE` entry in `.env` beside `docker-compose.yml` and include both files
+in backups. This prevents later commands from falling back to `teatro:local`.
+Do not use `--build` for the published-image deployment.
+
+The image includes the pinned `innoextract` sidecar, license notices and
+corresponding Debian sources, so it is larger than the executable alone. It uses
+Debian's patched SQLite library. The process runs as UID/GID `10001:10001`, listens
+on port 4440 and handles Docker's stop signal. Compose supplies persistent storage,
+the image's health check and `unless-stopped` restarts. It drops all capabilities
+and prevents privilege gain. Keep these settings.
+
+### Build from source
+
+This alternative needs Git, BuildKit, network access to pinned build inputs and
+enough memory for compilation. Use a separate source checkout and explicitly
+select the local image rather than the registry deployment's `TEATRO_IMAGE`:
+
+```bash
+git clone https://github.com/lodilorenzo/teatro.git teatro-source
+cd teatro-source
+TEATRO_IMAGE=teatro:local docker compose build
+TEATRO_IMAGE=teatro:local docker compose up --no-build -d
+```
+
+The [Dockerfile](../Dockerfile) builds and checks the same bundled sidecar.
+Do not run this deployment alongside another server using the same data volume.
+For running without Docker, see the [native source guide](development.md#run-from-source).
 
 ### Create the administrator
 
@@ -180,8 +196,9 @@ Stop Teatro and all other writers before copying SQLite, every library root,
 assets and deployment configuration as one backup set. Encrypt or restrict access
 to backups. Keep the matching source revision or image alongside them.
 
-For the **default** image and named volume, this Bash example creates a stopped
-backup without mounting host directories into a helper container:
+For the **default named volume**, this Bash example uses the running deployment's
+image to create a stopped backup. It works with a published or locally built
+image and does not mount host directories into the helper:
 
 ```bash
 set -euo pipefail
@@ -190,10 +207,13 @@ chmod 700 backups
 umask 077
 BACKUP="backups/teatro-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
 docker volume inspect teatro-data >/dev/null
+CONTAINER=$(docker compose ps --quiet teatro)
+test -n "$CONTAINER"
+BACKUP_IMAGE=$(docker inspect --format '{{.Image}}' "$CONTAINER")
 docker compose stop teatro
 docker run --rm --network none --entrypoint tar \
   --mount type=volume,src=teatro-data,dst=/data,readonly \
-  teatro:local -C /data -czf - . > "$BACKUP"
+  "$BACKUP_IMAGE" -C /data -czf - . > "$BACKUP"
 tar -tzf "$BACKUP" >/dev/null
 docker compose start teatro
 ```
@@ -204,7 +224,8 @@ mounts and the Compose configuration while the same service remains stopped.
 
 Restore into a **new empty volume**, keeping the original intact:
 
-1. Stop Teatro and select an image matching the backup's migration history.
+1. Stop Teatro and set `BACKUP_IMAGE` to the exact image reference saved with the
+   backup. Pull it if needed. It must match the backup's migration history.
 2. Choose an unused volume name, for example `teatro-restored`, and create it.
 3. Extract only your trusted backup. A temporary root helper preserves recorded
    ownership; the Teatro service itself remains unprivileged:
@@ -215,15 +236,16 @@ Restore into a **new empty volume**, keeping the original intact:
      echo 'Choose a new empty volume name before restoring.' >&2
      exit 1
    fi
+   : "${BACKUP_IMAGE:?Set the image reference recorded with this backup}"
    docker volume create teatro-restored
    docker run --rm -i --network none --user 0:0 --entrypoint tar \
      --mount type=volume,src=teatro-restored,dst=/restore \
-     teatro:local -C /restore -xzf - < backups/YOUR_BACKUP.tar.gz
+     "$BACKUP_IMAGE" -C /restore -xzf - < backups/YOUR_BACKUP.tar.gz
    ```
 
 4. Restore any external roots from the same backup set. Set
-   `TEATRO_DATA_VOLUME=teatro-restored` in the local Compose `.env`, then run
-   `docker compose up -d`. Do not run both copies against the same external roots.
+   `TEATRO_DATA_VOLUME=teatro-restored` and the matching `TEATRO_IMAGE` in the local
+   Compose `.env`, then run `docker compose up --no-build -d`. Do not run both copies against the same external roots.
 5. Check health, login, user/game counts, covers and a file download. Keep the old
    data until verification succeeds. Restored discovery IDs must not be advertised
    by two instances on the same link.
@@ -235,17 +257,23 @@ snapshots with a different migration history or manually edit SQLx migration rec
 
 Before an upgrade, make and verify a stopped backup, note the current source SHA,
 and retain the current image under another tag, such as `teatro:before-upgrade`.
-Review changes, check out the intended public revision, then:
+For a published image, review its changes and security policy, then verify the new
+index digest with Cosign as in the installation example. Update `TEATRO_IMAGE`
+in your existing `.env`, preserving other settings. If it is also exported in
+your shell, update or unset that variable so it does not override `.env`.
+Then run:
 
 ```bash
-docker compose build
-docker compose up -d
+docker compose config --quiet
+docker compose pull
+docker compose up --no-build -d
 docker compose logs --tail=100 teatro
 curl --fail http://127.0.0.1:4440/healthz
 ```
 
-For a registry image, verify the new index signature, update `TEATRO_IMAGE`, then
-use `docker compose pull` and `docker compose up --no-build -d` instead of building.
+For a locally built image, check out the intended public source revision and run
+`TEATRO_IMAGE=teatro:local docker compose build`, followed by
+`TEATRO_IMAGE=teatro:local docker compose up --no-build -d` instead of pulling.
 
 Startup applies embedded migrations and reconciles interrupted managed-file
 operations. Check login, library counts and downloads before discarding the backup.
