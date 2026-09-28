@@ -20,9 +20,9 @@ They are not a stable release or a guarantee of support for every Docker host.
 ### Use a published beta image
 
 The [GHCR package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
-lists published versions. There is no `latest` tag. The example below pins the
-signed multi-platform index from this [successful publication run](https://github.com/lodilorenzo/teatro/actions/runs/35287351279)
-and downloads its matching Compose file.
+lists published versions. These instructions target
+`ghcr.io/lodilorenzo/teatro:0.19.9`; there is no `latest` tag. The image will be
+available after the 0.19.9 publication workflow completes.
 
 Install a [current Cosign release](https://docs.sigstore.dev/cosign/system_config/installation/)
 with Sigstore bundle support. Review the [known findings and limits](image-publication.md#known-findings-and-scanner-limits)
@@ -39,8 +39,8 @@ set -euo pipefail
 mkdir teatro
 cd teatro
 curl --fail --location --output docker-compose.yml \
-  https://raw.githubusercontent.com/lodilorenzo/teatro/c713e1e7c53581a365fc3f2bbca6975ca6ded9d7/docker-compose.yml
-export TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro@sha256:9bbeb09704c57a6b3a3dc7b44feac4ee45a515adab3e68f800657ed6ac9fd3f8
+  https://raw.githubusercontent.com/lodilorenzo/teatro/main/docker-compose.yml
+export TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro:0.19.9
 cosign verify "$TEATRO_IMAGE" \
   --certificate-identity 'https://github.com/lodilorenzo/teatro/.github/workflows/docker.yml@refs/heads/main' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
@@ -50,7 +50,7 @@ docker compose pull
 docker compose up --no-build -d
 ```
 
-Docker selects amd64 or arm64 from the verified index. Keep the non-secret
+Docker selects amd64 or arm64 from the signed image index. Keep the non-secret
 `TEATRO_IMAGE` entry in `.env` beside `docker-compose.yml` and include both files
 in backups. This prevents later commands from falling back to `teatro:local`.
 Do not use `--build` for the published-image deployment.

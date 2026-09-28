@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-  <a href="Cargo.toml"><img src="https://img.shields.io/badge/version-v0.19.7-633436?style=flat-square" alt="Teatro version"></a>
+  <a href="Cargo.toml"><img src="https://img.shields.io/badge/version-v0.19.9-633436?style=flat-square" alt="Teatro version"></a>
   <a href="#limits-and-release-status"><img src="https://img.shields.io/badge/status-beta-bd4444?style=flat-square" alt="Status: beta"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC_BY--NC--SA_4.0-633436?style=flat-square" alt="License: CC BY-NC-SA 4.0"></a>
   <a href="docs/development.md#run-from-source"><img src="https://img.shields.io/badge/Rust-1.88%2B-bd4444?style=flat-square" alt="Rust: 1.88 or newer"></a>
@@ -36,50 +36,33 @@ There is no stable binary release. The current version is defined in
 
 ## Quick start with Docker
 
-Use a 64-bit Linux Docker engine, Compose v2, curl and local storage. Install a
-[current Cosign release](https://docs.sigstore.dev/cosign/system_config/installation/)
-to verify the image signature. You do not need Rust, BuildKit or a source checkout.
+Use a 64-bit Linux Docker engine. The `0.19.9` image will support amd64 and arm64
+when published; there is no `latest` tag.
 
-For a **fresh installation**, restrict port 4440 to your trusted network first.
-Review the [beta security exceptions](docs/image-publication.md#known-findings-and-scanner-limits).
-The example pins the image from this [successful publication run](https://github.com/lodilorenzo/teatro/actions/runs/35287351279)
-and its matching Compose file. There is no `latest` tag.
+For a fresh installation:
 
 ```bash
-set -euo pipefail
-mkdir teatro
-cd teatro
-curl --fail --location --output docker-compose.yml \
-  https://raw.githubusercontent.com/lodilorenzo/teatro/c713e1e7c53581a365fc3f2bbca6975ca6ded9d7/docker-compose.yml
-export TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro@sha256:9bbeb09704c57a6b3a3dc7b44feac4ee45a515adab3e68f800657ed6ac9fd3f8
-cosign verify "$TEATRO_IMAGE" \
-  --certificate-identity 'https://github.com/lodilorenzo/teatro/.github/workflows/docker.yml@refs/heads/main' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com
-printf 'TEATRO_IMAGE=%s\n' "$TEATRO_IMAGE" > .env
-docker compose config --quiet
-docker compose pull
-docker compose up --no-build -d
+docker volume create teatro-data
+docker run --detach \
+  --name teatro \
+  --restart unless-stopped \
+  --publish 4440:4440 \
+  --volume teatro-data:/data \
+  ghcr.io/lodilorenzo/teatro:0.19.9
 ```
 
-Docker selects the native architecture. Keep `.env` with your Compose file so
-later commands keep using the verified image. For an existing deployment, follow
-[upgrade and rollback](docs/docker.md#upgrade-and-rollback) instead of repeating
-this fresh-install example.
-
-Open `http://YOUR_SERVER:4440/setup` and immediately create the first administrator.
-Then use `/` for the player library and `/admin` for administration. The default
-named volume, `teatro-data`, holds the database, game files and covers.
+Open `http://YOUR_SERVER:4440/setup` and create the first administrator. Use `/`
+for the player library and `/admin` for administration. The `teatro-data` volume
+holds the database, game files and covers.
 
 **Complete setup on a trusted network. Do not expose port 4440 directly to the
 Internet.** Passwords and tokens need HTTPS or a trusted VPN outside that boundary.
-The default Compose file publishes the port on all host interfaces. For access
-from the host only, set `TEATRO_HOST_PORT=127.0.0.1:4440` in a local Compose `.env`.
+For host-only access, replace `--publish 4440:4440` with
+`--publish 127.0.0.1:4440:4440`.
 
 Read [Docker deployment](docs/docker.md) before using existing storage, changing
-permissions, or upgrading. The public baseline supports fresh installations,
-not databases from development snapshots with a different migration history.
-To compile your own Docker image, see [build from source](docs/docker.md#build-from-source).
-For a native build, see [development](docs/development.md#run-from-source).
+permissions, upgrading, verifying image signatures, or building from source. For
+a native build, see [development](docs/development.md#run-from-source).
 
 ## Documentation
 
@@ -87,6 +70,7 @@ All documentation is included here; no wiki is required.
 
 | Guide | Covers |
 | --- | --- |
+| [Changelog](CHANGELOG.md) | User-visible functionality added or changed between public versions. |
 | [Docker deployment and operations](docs/docker.md) | Installation, volumes, HTTPS, users, backup, restore, upgrades and troubleshooting. |
 | [Library guide](docs/library.md) | Playing and downloading, uploads, scans, metadata, deletion, Jobs and integrity checks. |
 | [Integrations](docs/integrations.md) | IGDB, GOG, remote RomM, compatible clients and LAN discovery. |
