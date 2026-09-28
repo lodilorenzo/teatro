@@ -1,5 +1,6 @@
 import { clearCoverImages } from '../../public/shared.js';
 import { api } from '../api.js';
+import { normalizeIgdbSearchTitle } from '../dom.js';
 import { replaceRom, setIgdbResults, setIgdbSettings, state } from '../state.js';
 
 export function createIgdbController(context) {
@@ -53,7 +54,7 @@ export function createIgdbController(context) {
     async onSearchSubmit(event) {
       event.preventDefault();
       const form = new FormData(event.currentTarget);
-      const q = String(form.get('q') || '').trim();
+      const q = normalizeIgdbSearchTitle(form.get('q'));
       const limit = String(form.get('limit') || '10');
       if (!q) return;
       const selectionId = state.romSelectionRequestId;

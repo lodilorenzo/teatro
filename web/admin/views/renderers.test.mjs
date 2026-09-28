@@ -250,17 +250,16 @@ test('game covers show the placeholder before downloaded artwork loads', () => {
   assert.doesNotMatch(missingCover, /data-cover-path=/);
 });
 
-test('coverless game IGDB search uses the detected filename title', () => {
+test('game IGDB search normalizes the saved title', () => {
   const rom = {
     id: 7,
-    name: 'Great Volleyball (USA, Europe).zip',
-    metadatum: { filename: { clean_title: 'Great Volleyball' } },
+    name: 'Great Volleyball (USA, Europe) [Rev 1].zip',
   };
 
   assert.match(renderIgdbSearch(rom), /name="q" value="Great Volleyball"/);
   assert.match(
     renderIgdbSearch({ ...rom, path_cover_small: 'covers/game.jpg' }),
-    /name="q" value="Great Volleyball \(USA, Europe\)\.zip"/,
+    /name="q" value="Great Volleyball"/,
   );
 });
 

@@ -37,6 +37,7 @@ async fn igdb_match_saves_metadata_and_caches_cover_assets() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let applied = response_json(response).await;
+    assert_eq!(applied["rom"]["name"], "Sonic The Hedgehog");
     assert_eq!(applied["rom"]["metadatum"]["igdb_id"], 123);
     assert_eq!(applied["rom"]["metadatum"]["release_year"], 1991);
     assert_eq!(applied["cached_covers"].as_array().unwrap().len(), 2);
@@ -84,6 +85,7 @@ async fn igdb_match_saves_metadata_and_caches_cover_assets() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let detail = response_json(response).await;
+    assert_eq!(detail["name"], "Sonic The Hedgehog");
     assert_eq!(detail["summary"], "A fast platform game.");
     assert_eq!(detail["metadatum"]["source"], "igdb");
     assert_eq!(detail["metadatum"].get("metadata"), None);
@@ -124,6 +126,7 @@ async fn igdb_match_saves_metadata_and_caches_cover_assets() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let reapplied = response_json(response).await;
+    assert_eq!(reapplied["rom"]["name"], "Sonic The Hedgehog");
     let renamed_large_path = reapplied["rom"]["path_cover_large"].as_str().unwrap();
     let renamed_small_path = reapplied["rom"]["path_cover_small"].as_str().unwrap();
     assert!(renamed_large_path.contains("sonic-renamed"));

@@ -269,6 +269,7 @@ impl IgdbClient {
             state.db(),
             roms::SaveIgdbMetadataParams {
                 rom_id,
+                name: &selected_match.name,
                 metadata_json: &metadata_json,
                 schema_version: METADATA_SCHEMA_VERSION,
                 summary,

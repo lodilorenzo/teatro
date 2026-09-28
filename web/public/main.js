@@ -31,6 +31,7 @@ const state = {
   game: null,
 };
 let navigationRequest = 0;
+let searchTimer = null;
 let toastTimer = null;
 // A navigation that stays on the same route (a retry, a repeated search, a hash re-entry) keeps the
 // reader where they were. The snapshot is taken once per navigation so the intermediate loading
@@ -74,6 +75,8 @@ function scrollPageKey(route) {
 }
 
 function renderLoginPage(error = '') {
+  clearTimeout(searchTimer);
+  searchTimer = null;
   pendingScroll = null;
   scrollToTop({ root: app });
   clearCoverImages();
@@ -110,6 +113,8 @@ async function onLogin(event) {
 }
 
 async function navigate() {
+  clearTimeout(searchTimer);
+  searchTimer = null;
   if (!state.auth) {
     renderLoginPage();
     return;
@@ -185,6 +190,12 @@ async function navigate() {
 }
 
 function renderContent(content, focusMain = false) {
+  const activeSearch = document.activeElement?.id === 'header-search' ? document.activeElement : null;
+  const searchDraft = activeSearch ? {
+    value: activeSearch.value,
+    start: activeSearch.selectionStart,
+    end: activeSearch.selectionEnd,
+  } : null;
   app.className = '';
   app.innerHTML = renderShell({
     user: state.user,
@@ -195,7 +206,12 @@ function renderContent(content, focusMain = false) {
   restoreScroll(pendingScroll, scrollPageKey(state.route), { root: app });
   bindShellEvents();
   syncCoverImages(app, state.auth?.header);
-  if (focusMain) app.querySelector('#main-content')?.focus({ preventScroll: true });
+  if (searchDraft) {
+    const input = app.querySelector('#header-search');
+    input.value = searchDraft.value;
+    input.focus({ preventScroll: true });
+    input.setSelectionRange(searchDraft.start, searchDraft.end);
+  } else if (focusMain) app.querySelector('#main-content')?.focus({ preventScroll: true });
 }
 
 function bindShellEvents() {
@@ -211,10 +227,22 @@ function bindShellEvents() {
   app.querySelector('[data-action="surprise"]')?.addEventListener('click', onSurprise);
   bindRecentCarousel();
 
-  app.querySelector('#header-search-form')?.addEventListener('submit', (event) => {
+  const searchForm = app.querySelector('#header-search-form');
+  const searchInput = searchForm?.querySelector('#header-search');
+  searchForm?.addEventListener('submit', (event) => {
     event.preventDefault();
+    clearTimeout(searchTimer);
+    searchTimer = null;
     const query = String(new FormData(event.currentTarget).get('q') || '').trim();
     goTo(contextualSearchHash(state.route, state.platforms, query));
+  });
+  searchInput?.addEventListener('input', (event) => {
+    const hash = contextualSearchHash(state.route, state.platforms, event.currentTarget.value);
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      searchTimer = null;
+      goTo(hash);
+    }, 250);
   });
 
   const viewButtons = [...app.querySelectorAll('[data-library-view]')];

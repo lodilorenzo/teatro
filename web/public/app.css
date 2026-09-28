@@ -525,7 +525,7 @@ input:focus-visible { outline-offset: 0; }
 .recent-game-platform-icon { position: absolute; right: 0.5rem; bottom: 0.5rem; z-index: 3; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border: 1px solid var(--line-bright); border-radius: var(--radius-m); padding: 0.18rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; color: var(--cyan); background: color-mix(in srgb, var(--backdrop) 88%, transparent); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
 .recent-game-platform-icon .platform-icon { width: 88%; height: 88%; }
 .game-card-action { position: absolute; right: 0.8rem; bottom: 0.75rem; left: 0.8rem; z-index: 2; display: flex; align-items: center; justify-content: space-between; font-size: 0.73rem; font-weight: 750; color: var(--text); opacity: 0; transform: translateY(0.5rem); transition: opacity 180ms ease, transform 180ms ease; }
-.recent-games-grid .game-card-action { right: 3.7rem; }
+.recent-game-platform-icon ~ .game-card-action { right: 3.7rem; }
 .game-cover-link:hover::after { opacity: 1; }
 .game-cover-link:hover .game-cover { transform: scale(1.025); filter: saturate(1.08); }
 .game-cover-link:hover .game-card-action { opacity: 1; transform: translateY(0); }

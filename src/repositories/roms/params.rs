@@ -85,6 +85,7 @@ pub(crate) struct SaveCoverParams<'a> {
 
 pub(crate) struct SaveIgdbMetadataParams<'a> {
     pub rom_id: i64,
+    pub name: &'a str,
     pub metadata_json: &'a str,
     pub schema_version: i64,
     pub summary: Option<&'a str>,

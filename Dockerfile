@@ -47,8 +47,7 @@ FROM debian:trixie-20260824-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf
 
 ARG TARGETARCH
 ARG TARGETPLATFORM
-ARG BUILD_JOBS=2
-ARG BUILDKIT_SBOM_SCAN_STAGE=true
+ARG CMAKE_BUILD_PARALLEL_LEVEL
 ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=C.UTF-8 \
     TZ=UTC
@@ -71,7 +70,11 @@ RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
       g++ \
       grep \
       gzip \
-      libboost-all-dev \
+      libboost-date-time-dev \
+      libboost-filesystem-dev \
+      libboost-iostreams-dev \
+      libboost-program-options-dev \
+      libboost-system-dev \
       libbz2-dev \
       liblzma-dev \
       libzstd-dev \
@@ -106,7 +109,7 @@ RUN set -eu; \
       -DUSE_LD=bfd \
       -DUSE_LTO=OFF \
       -DUSE_STATIC_LIBS=ON; \
-    cmake --build /build/output --parallel "$BUILD_JOBS"; \
+    cmake --build /build/output --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-$(nproc)}"; \
     cmake --build /build/output --target check; \
     /build/output/innoextract --version > /build/innoextract-version.txt; \
     grep --fixed-strings "innoextract $INNOEXTRACT_VERSION" /build/innoextract-version.txt; \

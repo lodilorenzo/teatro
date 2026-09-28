@@ -1,4 +1,4 @@
-import { attr, coverPath, html } from '../dom.js';
+import { attr, html, normalizeIgdbSearchTitle } from '../dom.js';
 import { state } from '../state.js';
 
 export function renderIgdbStatus(includeCredentials = false) {
@@ -40,10 +40,7 @@ function renderIgdbSettingsForm() {
 
 export function renderIgdbSearch(rom) {
   const disabled = !state.igdbStatus?.configured;
-  const detectedTitle = rom.metadatum?.filename?.clean_title;
-  const query = !coverPath(rom) && typeof detectedTitle === 'string' && detectedTitle.trim()
-    ? detectedTitle.trim()
-    : rom.name;
+  const query = normalizeIgdbSearchTitle(rom.name);
   return `
     ${disabled ? '<div class="notice">IGDB credentials are not configured on the server.</div>' : ''}
     <form id="igdb-search-form" data-rom-id="${rom.id}" class="filters">
