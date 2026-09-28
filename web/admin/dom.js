@@ -21,6 +21,15 @@ export function slugifyTitle(title) {
     .replace(/^-+|-+$/g, '') || 'rom';
 }
 
+export function normalizeIgdbSearchTitle(title) {
+  return String(title || '')
+    .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
+    .replace(/\.[a-z0-9]{1,16}\s*$/i, '')
+    .replaceAll('_', ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s_-]+|[\s_-]+$/g, '');
+}
+
 function manifestExtension(fileName) {
   return String(fileName || '').split('.').pop()?.toLowerCase() || '';
 }

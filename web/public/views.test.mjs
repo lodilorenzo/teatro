@@ -113,6 +113,11 @@ test('platform and search pages render game cards with pagination-safe routes', 
   assert.match(platformOutput, /data-library-view="grid" aria-pressed="true"/);
   assert.doesNotMatch(platformOutput, /platform-search-form|recent-game-platform-icon|game-grid list-view/);
 
+  const platformSearchOutput = renderPlatformPage({
+    platform: populated, page, route: { query: 'Sonic', page: 1 },
+  });
+  assert.match(platformSearchOutput, /class="recent-game-platform-icon"[^>]*><img class="platform-icon" src="\/public\/platform-icons\/genesis\.png"/);
+
   const searchOutput = renderSearchPage({
     page, route: { name: 'search', query: 'Sonic', page: 1 }, view: 'list',
   });
@@ -120,6 +125,7 @@ test('platform and search pages render game cards with pagination-safe routes', 
   assert.match(searchOutput, /Results for &quot;Sonic&quot;/);
   assert.match(searchOutput, /data-library-view="list" aria-pressed="true"/);
   assert.match(searchOutput, /class="game-grid list-view"/);
+  assert.match(searchOutput, /class="recent-game-platform-icon"[^>]*><img class="platform-icon" src="\/public\/platform-icons\/genesis\.png"/);
   assert.doesNotMatch(searchOutput, /page-search-form/);
 });
 

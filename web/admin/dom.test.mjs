@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { coverPath, html, parseCsv, slugifyTitle } from './dom.js';
+import {
+  coverPath, html, normalizeIgdbSearchTitle, parseCsv, slugifyTitle,
+} from './dom.js';
 
 test('html escapes markup and quotes', () => {
   assert.equal(html(`<a title="x">Tom & 'Ada'</a>`), '&lt;a title=&quot;x&quot;&gt;Tom &amp; &#39;Ada&#39;&lt;/a&gt;');
@@ -14,6 +16,11 @@ test('parseCsv trims and removes empty values', () => {
 test('slugifyTitle matches the server upload slug format', () => {
   assert.equal(slugifyTitle(' Final Fantasy VII: Rebirth! '), 'final-fantasy-vii-rebirth');
   assert.equal(slugifyTitle('日本語'), 'rom');
+});
+
+test('IGDB search titles omit filename extensions and bracketed tags', () => {
+  assert.equal(normalizeIgdbSearchTitle(' Great_Volleyball (USA, Europe) [Rev 1].pbp '), 'Great Volleyball');
+  assert.equal(normalizeIgdbSearchTitle('Dr. Mario'), 'Dr. Mario');
 });
 
 test('cover paths prefer the requested size and fall back to the other', () => {

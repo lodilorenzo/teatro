@@ -88,7 +88,7 @@ test('IGDB search scopes to the selected ROM platform unless all platforms is ex
   };
   let requestedPath = '';
   globalThis.FormData = class {
-    get(name) { return name === 'q' ? 'Sonic' : '10'; }
+    get(name) { return name === 'q' ? 'Sonic (USA) [!] .zip' : '10'; }
   };
   globalThis.fetch = async (path) => {
     requestedPath = String(path);

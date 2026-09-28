@@ -54,6 +54,7 @@ test('hash and API path builders encode user and server values', () => {
     '#/platform/5/my%20platform?q=Sonic+%26+Knuckles',
   );
   assert.equal(contextualSearchHash({ name: 'platforms' }, [], 'Sonic'), '#/search?q=Sonic');
+  assert.equal(contextualSearchHash({ name: 'search' }, [], '   '), '#/');
   assert.equal(
     romListPath({ platformId: 5, query: 'Sonic & Knuckles', page: 2 }),
     '/api/roms?limit=24&offset=24&platform_ids=5&search=Sonic+%26+Knuckles',

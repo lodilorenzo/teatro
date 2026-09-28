@@ -163,7 +163,7 @@ export function renderPlatformPage({ platform, page, route, view = 'grid' }) {
       ${renderGameResults(page, (targetPage) => platformHash(platform, { query, page: targetPage }), {
         emptyTitle: query ? 'No matching games' : 'No games found',
         emptyMessage: query ? 'Try another title or clear this platform search.' : 'This platform does not have any visible games.',
-      }, view)}
+      }, view, Boolean(query))}
     </section>`;
 }
 
@@ -188,7 +188,7 @@ export function renderSearchPage({ page, route, view = 'grid' }) {
       ${renderGameResults(page, (targetPage) => searchHash(query, targetPage), {
         emptyTitle: 'No matching games',
         emptyMessage: 'Check the spelling or try a shorter title.',
-      }, view)}
+      }, view, true)}
     </section>`;
 }
 
@@ -308,10 +308,10 @@ function renderRecentGames(games) {
     </section>`;
 }
 
-function renderGameResults(page, hrefForPage, empty, view) {
+function renderGameResults(page, hrefForPage, empty, view, showPlatformIcon = false) {
   const items = page?.items || [];
   if (!items.length) return renderEmpty(empty.emptyTitle, empty.emptyMessage, 'search');
-  return `<div class="game-grid${view === 'list' ? ' list-view' : ''}">${items.map((game) => renderGameCard(game)).join('')}</div>${renderPagination(page, hrefForPage)}`;
+  return `<div class="game-grid${view === 'list' ? ' list-view' : ''}">${items.map((game) => renderGameCard(game, null, showPlatformIcon)).join('')}</div>${renderPagination(page, hrefForPage)}`;
 }
 
 function renderViewToggle(view) {
@@ -321,7 +321,7 @@ function renderViewToggle(view) {
   </div>`;
 }
 
-function renderGameCard(game, recentIndex = null) {
+function renderGameCard(game, recentIndex = null, showPlatformIcon = false) {
   const largeCover = coverPath(game, 'large');
   const coverData = largeCover ? ` data-cover-path="${attr(largeCover)}"` : '';
   const year = metadataText(game, 'release_year');
@@ -330,7 +330,7 @@ function renderGameCard(game, recentIndex = null) {
   const carouselAttributes = isRecent
     ? ` data-recent-game="${recentIndex}"${recentIndex >= 5 ? ' hidden' : ''}`
     : '';
-  const platformIcon = isRecent ? `<span class="recent-game-platform-icon" aria-hidden="true">${renderPlatformIcon({
+  const platformIcon = isRecent || showPlatformIcon ? `<span class="recent-game-platform-icon" aria-hidden="true">${renderPlatformIcon({
     slug: game.platform_slug,
     display_name: game.platform_display_name,
   })}</span>` : '';

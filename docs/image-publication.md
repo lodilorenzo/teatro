@@ -2,9 +2,9 @@
 
 [Docker operations](docker.md) · [Packaging notices](../packaging/THIRD_PARTY_NOTICES.md)
 
-The destination is `ghcr.io/lodilorenzo/teatro`. Publication is manual and beta
-only. The image tag comes from [Cargo.toml](../Cargo.toml), with no `latest` tag,
-Git tag or stable GitHub Release. Check the
+The 0.19.9 destination is `ghcr.io/lodilorenzo/teatro:0.19.9`. Publication is
+manual and beta only. The image tag comes from [Cargo.toml](../Cargo.toml), with
+no `latest` tag, Git tag or stable GitHub Release. Check the
 [package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
 and completed workflow before assuming a version is available.
 

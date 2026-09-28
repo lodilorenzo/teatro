@@ -96,7 +96,8 @@ export function contextualSearchHash(route, platforms, query) {
   const platform = route?.name === 'platform'
     ? (platforms || []).find((item) => Number(item.id) === route.platformId)
     : null;
-  return platform ? platformHash(platform, { query }) : searchHash(query);
+  if (platform) return platformHash(platform, { query });
+  return String(query || '').trim() ? searchHash(query) : '#/';
 }
 
 export function romListPath({

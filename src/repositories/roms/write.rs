@@ -482,6 +482,7 @@ pub(crate) async fn save_igdb_metadata(
         r#"
         UPDATE roms
         SET
+            name = ?,
             summary = COALESCE(?, summary),
             url_cover = COALESCE(?, url_cover),
             path_cover_large = COALESCE(?, path_cover_large),
@@ -490,6 +491,7 @@ pub(crate) async fn save_igdb_metadata(
         WHERE id = ?
         "#,
     )
+    .bind(params.name)
     .bind(params.summary)
     .bind(params.url_cover)
     .bind(params.path_cover_large)
