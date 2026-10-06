@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install native build dependencies
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends --yes g++ pkg-config libclang-dev zlib1g-dev
       - name: Install stable Rust
         run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
       - name: Check formatting
@@ -33,10 +35,12 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - name: Install Rust 1.88.0
-        run: rustup toolchain install 1.88.0 --profile minimal
+      - name: Install native build dependencies
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends --yes g++ pkg-config libclang-dev zlib1g-dev
+      - name: Install Rust 1.93.0
+        run: rustup toolchain install 1.93.0 --profile minimal
       - name: Test minimum Rust version
-        run: cargo +1.88.0 test --locked --all-targets
+        run: cargo +1.93.0 test --locked --all-targets
 
   browser:
     runs-on: ubuntu-latest

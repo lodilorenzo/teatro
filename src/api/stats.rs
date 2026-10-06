@@ -56,22 +56,14 @@ struct DiskUsage {
     total: u64,
 }
 
-#[cfg(unix)]
 fn disk_usage(path: &Path) -> std::io::Result<DiskUsage> {
-    let stat = nix::sys::statvfs::statvfs(path).map_err(std::io::Error::other)?;
-    let frsize = stat.fragment_size() as u64;
-    let total = stat.blocks() as u64 * frsize;
+    let stat = fs2::statvfs(path)?;
+    let total = stat.total_space();
     // Blocks available to unprivileged callers; matches what `df` reports as free.
-    let free = stat.blocks_available() as u64 * frsize;
-    let used = total.saturating_sub(free);
-    Ok(DiskUsage { used, free, total })
-}
-
-#[cfg(not(unix))]
-fn disk_usage(_path: &Path) -> std::io::Result<DiskUsage> {
+    let free = stat.available_space();
     Ok(DiskUsage {
-        used: 0,
-        free: 0,
-        total: 0,
+        used: total.saturating_sub(free),
+        free,
+        total,
     })
 }

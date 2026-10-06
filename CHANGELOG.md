@@ -4,6 +4,42 @@ This changelog tracks user-visible functionality in public Teatro versions. It
 omits internal refactors and publication-process changes unless they affect
 installation or operation.
 
+## 0.21.3 — 2026-10-06
+
+Changes from 0.19.9:
+
+### Experimental compression on import
+
+Disabled unless `TEATRO_CONVERSION_ENABLED=true`. Outputs are verified against
+their inputs but not yet qualified with emulators. See the
+[library guide](docs/library.md#compress-on-import-experimental).
+
+- Wii U: decrypted base game, update and DLC folders become one `.wua`, with
+  folder drag-and-drop, local family checks and IGDB metadata after import.
+- GameCube and Wii: plain ISO/GCM and single-file WBFS discs become `.rvz`.
+- PS1, PS2, PSP, Saturn, Sega CD, PC Engine CD and Neo Geo CD: supported
+  ISO, IMG and CUE/BIN discs become one `.chd` per disc, with disc sets grouped
+  into one job per game and `.m3u` playlists pointing to the compressed discs.
+- Other non-disc platforms: uncompressed single-file ROMs become one `.7z` each;
+  existing archives in the same selection upload unchanged.
+- Jobs shows upload, compression and verification progress for these imports
+  and can cancel them until publication begins.
+
+### Building from source
+
+- Rust 1.93 or newer is required, along with a C/C++ toolchain, libclang and
+  zlib development headers. The linked conversion library needs libstdc++ and
+  zlib at runtime. The Docker image includes these.
+
+### Container deployment
+
+- The published image target is `ghcr.io/lodilorenzo/teatro:0.21.3` for amd64 and
+  arm64; there is no `latest` tag.
+- Debian packages come from the 2026-10-05 snapshot, which includes the PCRE2
+  and OpenSSL security updates.
+
+Versions 0.19.10 to 0.21.2 were not published.
+
 ## 0.19.9 — 2026-09-28
 
 Changes from 0.19.7:

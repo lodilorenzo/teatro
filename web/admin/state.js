@@ -62,7 +62,7 @@ function loadSavedJobs() {
     if (!Array.isArray(parsed)) return [];
     return parsed.filter((job) => job
       && typeof job.id === 'string'
-      && ['upload', 'gog-import', 'library-scan'].includes(job.type)
+      && ['upload', 'gog-import', 'library-scan', 'conversion-import'].includes(job.type)
       && typeof job.state === 'string')
       .slice(0, JOB_LIST_LIMIT);
   } catch (_) {
@@ -126,6 +126,12 @@ export const state = {
   screen: 'dashboard',
   platforms: [],
   stats: null,
+  conversionStatus: null,
+  conversionFiles: [],
+  conversionTitle: '',
+  conversionTitleOrigin: 'empty',
+  conversionInspection: null,
+  conversionInspecting: false,
   sidecarCleanupPreview: null,
   sidecarCleanupLoading: false,
   igdbStatus: null,
@@ -150,6 +156,9 @@ export const state = {
   error: '',
   notifications: [],
   uploadSelectedFiles: [],
+  uploadCompressRvz: false,
+  uploadCompressChd: false,
+  uploadCompressSevenZip: false,
   uploadPlatformId: loadSavedUploadPlatformId(),
   uploadPlan: null,
   uploadPreviewLoading: false,
@@ -202,28 +211,8 @@ export function setAuth(auth) {
   state.auth = auth || null;
 }
 
-export function setUser(user) {
-  state.user = user;
-}
-
 export function setPlatforms(platforms) {
   state.platforms = platforms || [];
-}
-
-export function setStats(stats) {
-  state.stats = stats;
-}
-
-export function setIgdbStatus(status) {
-  state.igdbStatus = status;
-}
-
-export function setIgdbSettings(settings) {
-  state.igdbSettings = settings;
-}
-
-export function setGogImportStatus(status) {
-  state.gogImportStatus = status;
 }
 
 export function setIgdbResults(results) {
@@ -363,6 +352,11 @@ export function replaceRom(updated) {
 
 export function setUploadPlatformId(platformId) {
   const normalized = normalizeUploadPlatformId(platformId);
+  if (state.uploadPlatformId !== normalized) {
+    state.uploadCompressRvz = false;
+    state.uploadCompressChd = false;
+    state.uploadCompressSevenZip = false;
+  }
   state.uploadPlatformId = normalized;
   try {
     if (normalized) globalThis.localStorage?.setItem(UPLOAD_PLATFORM_STORAGE_KEY, normalized);
@@ -372,7 +366,65 @@ export function setUploadPlatformId(platformId) {
   }
 }
 
+export function canCompressRvz() {
+  const platform = state.platforms.find((item) => String(item.id) === state.uploadPlatformId);
+  const extensions = platform?.slug === 'gc' ? /\.(iso|gcm)$/iu : platform?.slug === 'wii' ? /\.(iso|wbfs)$/iu : null;
+  return Boolean(extensions && state.conversionStatus?.enabled)
+    && Boolean(state.conversionStatus?.formats?.some((format) => format.platform_slug === platform.slug && format.output === 'rvz'))
+    && state.uploadSelectedFiles.length === 1
+    && extensions.test(state.uploadSelectedFiles[0].name)
+    && !/\.nkit\.(iso|wbfs)$/iu.test(state.uploadSelectedFiles[0].name);
+}
+
+export function chdFormat() {
+  const platform = state.platforms.find((item) => String(item.id) === state.uploadPlatformId);
+  return state.conversionStatus?.enabled
+    ? state.conversionStatus.formats?.find((format) => format.platform_slug === platform?.slug && format.output === 'chd')
+    : null;
+}
+
+export function canCompressChd() {
+  const format = chdFormat();
+  const files = state.uploadSelectedFiles;
+  const plan = state.uploadPlan;
+  if (!format || !files.length) return false;
+  if (plan && (plan.chd_inputs_compatible === false || plan.errors?.length || !plan.roms?.length
+    || plan.warnings?.some((warning) => warning.code === 'manifest_not_validated'))) return false;
+  const isoOnly = format.platform_slug === 'psp';
+  const isoAllowed = ['psx', 'ps2', 'psp'].includes(format.platform_slug);
+  return files.some((file) => /\.(cue|img)$/iu.test(file.name) || isoAllowed && /\.iso$/iu.test(file.name))
+    && files.every((file) => (isoOnly ? /\.(iso|img|m3u)$/iu : /\.(cue|bin|img|m3u|sbi)$/iu).test(file.name)
+      || isoAllowed && /\.iso$/iu.test(file.name))
+    && (!plan || plan.roms.every((rom) => rom.files?.some((file) => /\.(cue|img)$/iu.test(file.original_file_name)
+        || isoAllowed && /\.iso$/iu.test(file.original_file_name))
+      && !rom.files.some((file) => file.launchable && /\.(bin|sbi)$/iu.test(file.original_file_name))));
+}
+
+export function sevenZipFormat() {
+  const platform = state.platforms.find((item) => String(item.id) === state.uploadPlatformId);
+  return state.conversionStatus?.enabled
+    ? state.conversionStatus.formats?.find((format) => format.platform_slug === platform?.slug && format.output === '7z')
+    : null;
+}
+
+export function isSevenZipInput(file) {
+  const extension = String(file?.name || '').split('.').at(-1).toLowerCase();
+  return Boolean(file?.size > 0 && sevenZipFormat()?.input_extensions?.includes(extension));
+}
+
+export function canCompressSevenZip() {
+  const files = state.uploadSelectedFiles;
+  const plan = state.uploadPlan;
+  return files.some(isSevenZipInput)
+    && (!plan || !plan.errors?.length && plan.roms?.length > 0
+      && files.filter(isSevenZipInput).every((file) => plan.roms.some((rom) => rom.files?.length === 1
+        && rom.files[0].original_file_name === file.name)));
+}
+
 export function setUploadFiles(files) {
+  state.uploadCompressRvz = false;
+  state.uploadCompressChd = false;
+  state.uploadCompressSevenZip = false;
   state.uploadSelectedFiles = [...files];
   state.uploadPlan = null;
   state.uploadPreviewLoading = false;
@@ -421,7 +473,7 @@ export function addJob(input) {
   const createdAt = Number(input?.createdAt || Date.now());
   const job = {
     id: String(input?.id || createJobId(input?.type)),
-    type: ['gog-import', 'library-scan', 'romm-import'].includes(input?.type)
+    type: ['gog-import', 'library-scan', 'romm-import', 'conversion-import'].includes(input?.type)
       ? input.type
       : 'upload',
     title: String(input?.title || 'Untitled job'),
@@ -434,6 +486,7 @@ export function addJob(input) {
     progress: { ...(input?.progress || {}) },
     result: input?.result ?? null,
     error: input?.error ? String(input.error) : '',
+    outputFormat: input?.outputFormat || null,
     serverJobId: input?.serverJobId ? String(input.serverJobId) : null,
     statusUrl: input?.statusUrl ? String(input.statusUrl) : null,
   };
@@ -482,6 +535,9 @@ export function clearFinishedJobs() {
 }
 
 export function resetUploadWorkflow() {
+  state.uploadCompressRvz = false;
+  state.uploadCompressChd = false;
+  state.uploadCompressSevenZip = false;
   state.uploadSelectedFiles = [];
   state.uploadPlan = null;
   state.uploadPreviewLoading = false;
@@ -1032,6 +1088,12 @@ export function resetSession() {
   clearRomSelection();
   resetUploadWorkflow();
   resetGogImportWorkflow();
+  state.conversionStatus = null;
+  state.conversionFiles = [];
+  state.conversionTitle = '';
+  state.conversionTitleOrigin = 'empty';
+  state.conversionInspection = null;
+  state.conversionInspecting = false;
   state.sidecarCleanupPreview = null;
   state.sidecarCleanupLoading = false;
   state.rommSource = null;

@@ -1,8 +1,8 @@
 //! Auditable boundary for every managed library and asset mutation.
 //!
 //! Callers acquire a cross-process root lock before multi-step operations. New writes reject
-//! existing targets and symlinks; generated/replacement content uses a temporary sibling plus
-//! rename; destructive workflows move files to same-filesystem trash before database changes.
+//! existing targets and symlinks; generated content uses a temporary sibling plus rename;
+//! destructive workflows move files to same-filesystem trash before database changes.
 
 use std::{
     fs::{File, OpenOptions as StdOpenOptions},
@@ -312,25 +312,7 @@ impl FileStore {
     ) -> Result<PathBuf, FileStoreError> {
         let target = self.resolve_new(root, relative_path)?;
         reject_existing_target(&target).await?;
-        self.write_temporary_then_rename(&target, contents, false)
-            .await?;
-        Ok(target)
-    }
-
-    pub async fn replace_atomic(
-        &self,
-        root: &Path,
-        relative_path: &str,
-        contents: &[u8],
-    ) -> Result<PathBuf, FileStoreError> {
-        let target = self.resolve_new(root, relative_path)?;
-        if let Ok(metadata) = tokio::fs::symlink_metadata(&target).await
-            && (metadata.file_type().is_symlink() || !metadata.is_file())
-        {
-            return Err(FileStoreError::NotRegularFile);
-        }
-        self.write_temporary_then_rename(&target, contents, true)
-            .await?;
+        self.write_temporary_then_rename(&target, contents).await?;
         Ok(target)
     }
 
@@ -465,7 +447,6 @@ impl FileStore {
         &self,
         target: &Path,
         contents: &[u8],
-        replace: bool,
     ) -> Result<(), FileStoreError> {
         let temp = temporary_sibling(target)?;
         let result = async {
@@ -480,9 +461,7 @@ impl FileStore {
             file.sync_all().await?;
             drop(file);
 
-            if !replace {
-                reject_existing_target(target).await?;
-            }
+            reject_existing_target(target).await?;
             self.inject_mutation_failure()?;
             tokio::fs::rename(&temp, target).await?;
             Ok::<_, FileStoreError>(())
@@ -589,22 +568,5 @@ mod tests {
                 .to_string_lossy()
                 .ends_with(".tmp")
         }));
-    }
-
-    #[tokio::test]
-    async fn replacements_are_atomic_and_leave_no_temporary_file() {
-        let temp = TempDir::new().unwrap();
-        std::fs::write(temp.path().join("cover.jpg"), b"old").unwrap();
-        let store = FileStore::new();
-        let _lock = store.lock_root(temp.path()).await.unwrap();
-        store
-            .replace_atomic(temp.path(), "cover.jpg", b"new")
-            .await
-            .unwrap();
-        assert_eq!(
-            std::fs::read(temp.path().join("cover.jpg")).unwrap(),
-            b"new"
-        );
-        assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 2); // cover and lock
     }
 }

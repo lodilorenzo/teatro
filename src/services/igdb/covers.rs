@@ -449,6 +449,7 @@ mod tests {
             uploads: UploadConfig::default(),
             download_archives: DownloadArchiveConfig::default(),
             gog_import: GogImportConfig::default(),
+            conversion_enabled: false,
             romm_source: RommSourceConfig::default(),
             log_format: LogFormat::Compact,
             lan_discovery: crate::config::LanDiscoveryConfig::default(),

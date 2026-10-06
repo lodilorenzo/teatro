@@ -166,7 +166,7 @@ async fn delete_reconciles_an_interrupted_cover_before_collecting_assets() {
     .await
     .unwrap();
 
-    library::delete_rom(&state, rom_id, true, None)
+    library::delete_rom(&state, rom_id, None)
         .await
         .unwrap();
 
@@ -196,7 +196,7 @@ async fn delete_serializes_with_first_cover_application_even_without_existing_co
     let blocker = state.file_store().lock_root(&asset_root).await.unwrap();
     let delete_state = state.clone();
     let deletion =
-        tokio::spawn(async move { library::delete_rom(&delete_state, rom_id, true, None).await });
+        tokio::spawn(async move { library::delete_rom(&delete_state, rom_id, None).await });
     sleep(Duration::from_millis(100)).await;
     assert!(
         !deletion.is_finished(),
@@ -240,7 +240,7 @@ async fn delete_deduplicates_an_asset_root_that_is_also_a_library_root() {
 
     let outcome = timeout(
         Duration::from_secs(3),
-        library::delete_rom(&state, rom_id, true, None),
+        library::delete_rom(&state, rom_id, None),
     )
     .await
     .expect("deletion should not deadlock on the shared physical root")

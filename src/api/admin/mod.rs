@@ -1,6 +1,7 @@
 //! Administrative HTTP handlers and request/response translation.
 
 mod audit;
+pub(super) mod conversion;
 mod dto;
 pub(super) mod errors;
 mod gog_import;

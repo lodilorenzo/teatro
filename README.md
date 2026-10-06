@@ -3,10 +3,10 @@
 </h1>
 
 <p align="center">
-  <a href="Cargo.toml"><img src="https://img.shields.io/badge/version-v0.19.9-633436?style=flat-square" alt="Teatro version"></a>
+  <a href="Cargo.toml"><img src="https://img.shields.io/badge/version-v0.21.3-633436?style=flat-square" alt="Teatro version"></a>
   <a href="#limits-and-release-status"><img src="https://img.shields.io/badge/status-beta-bd4444?style=flat-square" alt="Status: beta"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC_BY--NC--SA_4.0-633436?style=flat-square" alt="License: CC BY-NC-SA 4.0"></a>
-  <a href="docs/development.md#run-from-source"><img src="https://img.shields.io/badge/Rust-1.88%2B-bd4444?style=flat-square" alt="Rust: 1.88 or newer"></a>
+  <a href="docs/development.md#run-from-source"><img src="https://img.shields.io/badge/Rust-1.93%2B-bd4444?style=flat-square" alt="Rust: 1.93 or newer"></a>
   <a href="https://github.com/users/lodilorenzo/packages/container/package/teatro"><img src="https://img.shields.io/badge/Docker-GHCR_beta-633436?style=flat-square" alt="Docker: published beta images on GHCR"></a>
 </p>
 
@@ -33,10 +33,11 @@ There is no stable binary release. The current version is defined in
 - Optional GOG offline-installer extraction into Windows ZIPs.
 - Optional browsing and selected-game imports from one remote RomM server.
 - Optional same-link IPv4 discovery for compatible clients.
+- Experimental, opt-in compression on import to WUA, RVZ, CHD and 7z.
 
 ## Quick start with Docker
 
-Use a 64-bit Linux Docker engine. The `0.19.9` image will support amd64 and arm64
+Use a 64-bit Linux Docker engine. The `0.21.3` image will support amd64 and arm64
 when published; there is no `latest` tag.
 
 For a fresh installation:
@@ -48,7 +49,7 @@ docker run --detach \
   --restart unless-stopped \
   --publish 4440:4440 \
   --volume teatro-data:/data \
-  ghcr.io/lodilorenzo/teatro:0.19.9
+  ghcr.io/lodilorenzo/teatro:0.21.3
 ```
 
 Open `http://YOUR_SERVER:4440/setup` and create the first administrator. Use `/`
@@ -83,7 +84,8 @@ All documentation is included here; no wiki is required.
 ## Limits and release status
 
 Teatro implements a subset of the ROMM API for browsing and downloads, not the full API.
-GOG and remote RomM imports are disabled by default. Remote RomM compatibility
+GOG, remote RomM and conversion imports are disabled by default. Converted
+outputs are verified against their inputs but not yet qualified with emulators. Remote RomM compatibility
 has not been validated against a live server. Server-side import jobs do not
 resume after a restart. Archives are hashed as files, not by their members;
 split archives and ClrMamePro text DATs are unsupported.

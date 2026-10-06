@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { clearAuth, loadSavedAuth as loadAdminAuth, saveAuth as saveAdminAuth } from './auth.js';
+import { clearAuth, saveAuth as saveAdminAuth } from './auth.js';
 import { clearSavedAuth, loadSavedAuth as loadPublicAuth, saveAuth as savePublicAuth } from '../public/auth.js';
 import { state } from './state.js';
 
@@ -26,18 +26,16 @@ test('sign-in and sign-out are shared in both directions, with opt-in restart pe
     for (const save of [saveAdminAuth, savePublicAuth]) {
       for (const remember of [false, true]) {
         save(auth, remember);
-        assert.deepEqual(loadAdminAuth(), auth);
         assert.deepEqual(loadPublicAuth(), auth);
         assert.equal(localStorage.getItem('teatro.auth.v2') !== null, remember);
         sessionStorage.clear(); // New tab or browser restart.
-        assert.deepEqual(loadAdminAuth(), remember ? auth : null);
         assert.deepEqual(loadPublicAuth(), remember ? auth : null);
         save(auth, remember);
         clearAuth();
         assert.equal(loadPublicAuth(), null);
         save(auth, remember);
         clearSavedAuth();
-        assert.equal(loadAdminAuth(), null);
+        assert.equal(loadPublicAuth(), null);
       }
     }
     savePublicAuth(auth, true);

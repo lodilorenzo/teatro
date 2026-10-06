@@ -6,6 +6,7 @@ import { jobListPriority, renderJobCardBody } from '../views/jobs.js';
 
 export function activeJobCancellationUrl(job) {
   if (!isJobActive(job)) return null;
+  if (job.type === 'conversion-import' && job.serverJobId) return `/api/admin/conversion-imports/${encodeURIComponent(job.serverJobId)}`;
   if (job.type === 'library-scan' && job.serverJobId) {
     return `/api/admin/library/scans/${encodeURIComponent(job.serverJobId)}`;
   }

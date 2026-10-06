@@ -204,6 +204,42 @@ fn plan_prepared_inputs(
             roms.push(plan_single_rom(file, roms.len()));
         }
     }
+    // SBI subchannel corrections belong to their disc, not a separate game.
+    // ponytail: bounded batches use a stem scan; index stems if batch sizes grow.
+    for sidecar in prepared.iter().filter(|file| file.extension == "sbi") {
+        let stem = std::path::Path::new(&sidecar.input.original_file_name).file_stem();
+        let owner = roms.iter().enumerate().find_map(|(index, rom)| {
+            rom.files
+                .iter()
+                .find(|file| {
+                    matches!(file.role, FileRole::Descriptor | FileRole::DiscImage)
+                        && std::path::Path::new(&file.original_file_name).file_stem() == stem
+                })
+                .map(|file| (index, file.group_key.clone(), file.disc_index))
+        });
+        if let Some((index, group, disc_index)) = owner {
+            let sort_index = roms[index]
+                .files
+                .iter()
+                .map(|file| file.sort_index)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            roms[index].files.push(plan_file(
+                sidecar,
+                group.as_deref(),
+                FileRole::MetadataSidecar,
+                sort_index,
+                disc_index,
+                None,
+                false,
+                json!({}),
+            ));
+            roms.retain(|rom| {
+                !(rom.files.len() == 1 && rom.files[0].key == file_key(sidecar.input.index))
+            });
+        }
+    }
     (roms, errors)
 }
 

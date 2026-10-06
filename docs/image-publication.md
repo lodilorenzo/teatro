@@ -2,7 +2,7 @@
 
 [Docker operations](docker.md) · [Packaging notices](../packaging/THIRD_PARTY_NOTICES.md)
 
-The 0.19.9 destination is `ghcr.io/lodilorenzo/teatro:0.19.9`. Publication is
+The 0.21.3 destination is `ghcr.io/lodilorenzo/teatro:0.21.3`. Publication is
 manual and beta only. The image tag comes from [Cargo.toml](../Cargo.toml), with
 no `latest` tag, Git tag or stable GitHub Release. Check the
 [package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
@@ -46,8 +46,9 @@ not stop automatically when an exception expires. Review them and move to a
 newly reviewed image.
 
 Cargo-auditable uses Cargo metadata, which can overreport disabled optional
-SQLx/MySQL/RSA dependencies. The image separately retains Cargo tree's native
-normal/build graph and rejects RSA in that graph. The source CI's guarded Cargo
+SQLx/MySQL dependencies. The image separately retains Cargo tree's native
+normal/build graph and rejects RSA unless it is reached only through the reviewed
+`rom-converto-lib` pin described in [development checks](development.md#checks). The source CI's guarded Cargo
 audit remains mandatory. SBOMs also include extractor build-stage packages, so
 not every listed package is runtime code. Embedded interface assets have separate
 inventories and licenses in the packaging notices. A clean scanner result does

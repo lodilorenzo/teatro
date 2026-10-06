@@ -36,6 +36,8 @@ class FakeXmlHttpRequest extends FakeEventTarget {
   }
 
   send() {}
+
+  abort() { this.emit('abort'); this.emit('loadend'); }
 }
 
 test('automatic metadata search asks the server to try the selected platform first', async () => {
@@ -142,6 +144,27 @@ test('upload progress is self-contained for background Jobs entries', async () =
     globalThis.XMLHttpRequest = previousXmlHttpRequest;
     globalThis.performance = previousPerformance;
   }
+});
+
+test('multipart uploads measure transport percentage and support cancellation', async () => {
+  const previous = { auth:state.auth, xhr:globalThis.XMLHttpRequest };
+  state.auth = { header:'Bearer test' };
+  globalThis.XMLHttpRequest = FakeXmlHttpRequest;
+  const updates = [];
+  const transfer = createUploadTransfer({ updateProgress:(value) => updates.push(value) });
+  try {
+    const abort = new AbortController();
+    const pending = transfer.uploadWithProgress(new FormData(), { fileSize:100, totalBytes:100, signal:abort.signal });
+    const rejected = assert.rejects(pending, /aborted/);
+    FakeXmlHttpRequest.last.upload.emit('progress', { lengthComputable:true, loaded:150, total:300 });
+    assert.equal(updates[0].percent, 50, 'Multipart headers must not inflate the payload percentage');
+    assert.equal(updates[0].loaded, 50);
+    abort.abort();
+    await rejected;
+    const last = FakeXmlHttpRequest.last;
+    await assert.rejects(transfer.uploadWithProgress(new FormData(), { signal:abort.signal }), { name:'AbortError' });
+    assert.equal(FakeXmlHttpRequest.last, last, 'Already-cancelled uploads must not start a request');
+  } finally { state.auth = previous.auth; globalThis.XMLHttpRequest = previous.xhr; }
 });
 
 test('large durable uploads start directly instead of copying the file into IndexedDB', async () => {

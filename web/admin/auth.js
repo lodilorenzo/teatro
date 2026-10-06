@@ -1,13 +1,7 @@
-import {
-  clearSavedAuth, loadSavedAuth as loadSharedAuth, saveAuth as saveSharedAuth,
-} from '../public/auth.js';
+import { clearSavedAuth, saveAuth as saveSharedAuth } from '../public/auth.js';
 import { clearCoverImages } from '../public/shared.js';
 import { clearRommCovers } from './features/romm-covers.js';
-import { invalidateRomSelection, setAuth, setUser } from './state.js';
-
-export function loadSavedAuth() {
-  return loadSharedAuth();
-}
+import { invalidateRomSelection, setAuth, state } from './state.js';
 
 export function saveAuth(auth, rememberMe = false) {
   setAuth(auth);
@@ -17,7 +11,7 @@ export function saveAuth(auth, rememberMe = false) {
 export function clearAuth() {
   invalidateRomSelection();
   setAuth(null);
-  setUser(null);
+  state.user = null;
   clearSavedAuth();
   clearCoverImages();
   clearRommCovers();

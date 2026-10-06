@@ -48,10 +48,3 @@ export function parseCsv(value) {
     .map((part) => part.trim())
     .filter(Boolean);
 }
-
-export function coverPath(rom, size = 'small') {
-  if (!rom) return '';
-  return size === 'large'
-    ? rom.path_cover_large || rom.path_cover_small || ''
-    : rom.path_cover_small || rom.path_cover_large || '';
-}

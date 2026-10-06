@@ -383,7 +383,7 @@ pub(super) fn multipart_error(error: axum::extract::multipart::MultipartError) -
 
 #[cfg(test)]
 mod tests {
-    use crate::api::admin::query::{DeleteRomQuery, GogImportJobQuery, IgdbSearchQuery};
+    use crate::api::admin::query::{GogImportJobQuery, IgdbSearchQuery, validate_delete_rom_query};
 
     #[test]
     fn parses_gog_import_job_cursor_strictly() {
@@ -401,14 +401,10 @@ mod tests {
 
     #[test]
     fn parses_delete_files_query() {
-        assert!(DeleteRomQuery::parse(None).unwrap().delete_files);
-        assert!(
-            DeleteRomQuery::parse(Some("delete_files=true"))
-                .unwrap()
-                .delete_files
-        );
-        assert!(DeleteRomQuery::parse(Some("delete_files=false")).is_err());
-        assert!(DeleteRomQuery::parse(Some("delete_files=wat")).is_err());
+        assert!(validate_delete_rom_query(None).is_ok());
+        assert!(validate_delete_rom_query(Some("delete_files=true")).is_ok());
+        assert!(validate_delete_rom_query(Some("delete_files=false")).is_err());
+        assert!(validate_delete_rom_query(Some("delete_files=wat")).is_err());
     }
 
     #[test]

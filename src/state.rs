@@ -26,7 +26,7 @@ use crate::{
     services::{
         auth_rate_limit::AuthRateLimiter,
         background_transfers::BackgroundTransferRegistry,
-        file_operations, gog_import,
+        conversion, file_operations, gog_import,
         igdb::IgdbClient,
         library::{DownloadTicketRegistry, LibraryScanJobRegistry, PreparedDownloadArchive},
         password::PasswordService,
@@ -59,6 +59,7 @@ pub struct AppState {
     download_archive_tickets: Arc<DownloadTicketRegistry<PreparedDownloadArchive>>,
     download_file_tickets: Arc<DownloadTicketRegistry<axum::response::Response>>,
     gog_import_jobs: Arc<gog_import::GogImportJobRegistry>,
+    conversions: Arc<conversion::ConversionRegistry>,
     library_scan_jobs: Arc<LibraryScanJobRegistry>,
     romm_client: Arc<RommClient>,
     romm_import_jobs: Arc<RommImportJobRegistry>,
@@ -107,6 +108,7 @@ impl AppState {
 
         if mode == InitializationMode::Server {
             integrity::fail_interrupted_jobs(&db).await?;
+            conversion::cleanup_abandoned(&config.data_dir).await?;
             gog_import::cleanup_abandoned_workspaces(&config)
                 .await
                 .map_err(|error| AppError::Reconciliation(error.to_string()))?;
@@ -138,6 +140,7 @@ impl AppState {
             download_archive_tickets,
             download_file_tickets: Arc::new(DownloadTicketRegistry::default()),
             gog_import_jobs: Arc::new(gog_import::GogImportJobRegistry::new()),
+            conversions: Arc::new(conversion::ConversionRegistry::new()),
             library_scan_jobs: Arc::new(LibraryScanJobRegistry::new("scan_")),
             romm_client,
             romm_import_jobs: Arc::new(RommImportJobRegistry::new("romm_")),
@@ -176,6 +179,10 @@ impl AppState {
 
     pub fn config(&self) -> &AppConfig {
         &self.config
+    }
+
+    pub(crate) fn conversions(&self) -> &Arc<conversion::ConversionRegistry> {
+        &self.conversions
     }
 
     pub fn db(&self) -> &SqlitePool {

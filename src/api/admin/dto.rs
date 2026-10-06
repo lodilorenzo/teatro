@@ -7,7 +7,6 @@ use crate::{
     api::romm::RomResponse,
     domain::{
         api_token::{ApiToken, ApiTokenScope, CreatedApiToken},
-        library::{LibraryRootStats, LibraryStats, PlatformLibraryStats},
         rom::{RomFile, RomFileDependency, RomFileGroup},
         user::{PublicUser, UserRole},
         workflow::FileHashStatus,
@@ -17,7 +16,7 @@ use crate::{
             GogImportJobEvent, GogImportJobSnapshot, GogImportOutcome, GogImportProgress,
             GogImportSummary,
         },
-        igdb::{self as igdb_service, CachedCoverAsset, IgdbGameCandidate},
+        igdb::{CachedCoverAsset, IgdbGameCandidate},
         library::{
             self, BulkDeleteRomsOutcome, BulkDeleteScope, DeleteRomOutcome, IngestPlanWarning,
             LibraryScanJobProgress, LibraryScanJobSnapshot, LibraryScanResult, SidecarCleanupFile,
@@ -329,44 +328,6 @@ pub struct RomFileDependencyResponse {
     child_file_id: i64,
     dependency_kind: String,
     sort_index: i64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct LibraryStatsResponse {
-    total_roms: i64,
-    total_files: i64,
-    total_file_bytes: i64,
-    platforms_with_roms: i64,
-    library_roots: Vec<LibraryRootStatsResponse>,
-    platforms: Vec<PlatformLibraryStatsResponse>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct LibraryRootStatsResponse {
-    id: i64,
-    name: String,
-    root_path: String,
-    writable: bool,
-    file_count: i64,
-    total_file_bytes: i64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct PlatformLibraryStatsResponse {
-    id: i64,
-    slug: String,
-    display_name: String,
-    rom_count: i64,
-    file_count: i64,
-    total_file_bytes: i64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct IgdbStatusResponse {
-    configured: bool,
-    client_id_configured: bool,
-    client_secret_configured: bool,
-    token_cached: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -763,64 +724,6 @@ impl From<RomFileDependency> for RomFileDependencyResponse {
             child_file_id: dependency.child_file_id,
             dependency_kind: dependency.dependency_kind.to_string(),
             sort_index: dependency.sort_index,
-        }
-    }
-}
-
-impl From<LibraryStats> for LibraryStatsResponse {
-    fn from(stats: LibraryStats) -> Self {
-        Self {
-            total_roms: stats.total_roms,
-            total_files: stats.total_files,
-            total_file_bytes: stats.total_file_bytes,
-            platforms_with_roms: stats.platforms_with_roms,
-            library_roots: stats
-                .library_roots
-                .into_iter()
-                .map(LibraryRootStatsResponse::from)
-                .collect(),
-            platforms: stats
-                .platforms
-                .into_iter()
-                .map(PlatformLibraryStatsResponse::from)
-                .collect(),
-        }
-    }
-}
-
-impl From<LibraryRootStats> for LibraryRootStatsResponse {
-    fn from(stats: LibraryRootStats) -> Self {
-        Self {
-            id: stats.id,
-            name: stats.name,
-            root_path: stats.root_path.display().to_string(),
-            writable: stats.writable,
-            file_count: stats.file_count,
-            total_file_bytes: stats.total_file_bytes,
-        }
-    }
-}
-
-impl From<PlatformLibraryStats> for PlatformLibraryStatsResponse {
-    fn from(stats: PlatformLibraryStats) -> Self {
-        Self {
-            id: stats.id,
-            slug: stats.slug,
-            display_name: stats.display_name,
-            rom_count: stats.rom_count,
-            file_count: stats.file_count,
-            total_file_bytes: stats.total_file_bytes,
-        }
-    }
-}
-
-impl From<igdb_service::IgdbStatus> for IgdbStatusResponse {
-    fn from(status: igdb_service::IgdbStatus) -> Self {
-        Self {
-            configured: status.configured,
-            client_id_configured: status.client_id_configured,
-            client_secret_configured: status.client_secret_configured,
-            token_cached: status.token_cached,
         }
     }
 }

@@ -39,7 +39,7 @@ Compose-only interpolation values, not application settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `TEATRO_IMAGE` | `teatro:local` | Image reference. Set `ghcr.io/lodilorenzo/teatro:0.19.9` for the published 0.19.9 release. |
+| `TEATRO_IMAGE` | `teatro:local` | Image reference. Set `ghcr.io/lodilorenzo/teatro:0.21.3` for the published 0.21.3 release. |
 | `TEATRO_HOST_PORT` | `4440` | Host-side port, or `127.0.0.1:4440` to publish on host loopback only. |
 | `TEATRO_DATA_VOLUME` | `teatro-data` | Persistent named volume. Use distinct names for isolated instances. |
 
@@ -80,6 +80,7 @@ Read [integration setup](integrations.md) before enabling imports.
 | `TEATRO_GOG_IMPORT_TIMEOUT_SECONDS` | `1800` | Processing timeout. |
 | `TEATRO_GOG_IMPORT_MAX_EXTRACTED_BYTES` | `53687091200` | 50 GiB extracted content ceiling. |
 | `TEATRO_GOG_IMPORT_MAX_EXTRACTED_FILES` | `20000` | Extracted file ceiling. |
+| `TEATRO_CONVERSION_ENABLED` | `false` | Enable [experimental compression on import](library.md#compress-on-import-experimental). |
 | `TEATRO_ROMM_SOURCE_ENABLED` | `false` | Enable the remote RomM source routes. |
 | `TEATRO_ROMM_SOURCE_TIMEOUT_SECONDS` | `30` | Remote metadata/probe request timeout. |
 | `TEATRO_ROMM_IMPORT_TIMEOUT_SECONDS` | `3600` | Import timeout. |

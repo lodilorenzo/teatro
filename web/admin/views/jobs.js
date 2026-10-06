@@ -1,5 +1,6 @@
 import { attr, formatBytes, formatSpeed, html } from '../dom.js';
 import { isJobActive, state } from '../state.js';
+import { renderConversionProgress } from './conversion.js';
 import { renderGogImportProgress } from './gog-import.js';
 
 function statusLabel(job) {
@@ -21,6 +22,7 @@ export function jobListPriority(job) {
 }
 
 function jobTypeLabel(job) {
+  if (job.type === 'conversion-import') return job.outputFormat === '7z' ? '7z ROM import' : job.outputFormat === 'chd' ? 'CHD conversion import' : (job.outputFormat || job.proposal?.output_format) === 'rvz' ? 'Dolphin conversion import' : 'Wii U conversion import';
   if (job.type === 'gog-import') return 'GOG setup import';
   if (job.type === 'library-scan') return 'Managed library scan';
   if (job.type === 'romm-import') return 'RomM import';
@@ -156,6 +158,12 @@ function renderScanCoverWarnings(warnings) {
 
 function renderResult(job) {
   if (job.state !== 'succeeded') return '';
+  if (job.type === 'conversion-import') {
+    const saved = job.result.input_bytes - job.result.output_bytes;
+    const format = job.result.output_format || job.outputFormat || (job.result.file_name?.toLowerCase().endsWith('.rvz') ? 'rvz' : 'wua');
+    return `<div class="job-result notice">Published ${format === 'chd' ? 'a verified CHD disc set totaling' : 'one verified'} ${html(formatBytes(job.result.output_bytes))} ${format === 'chd' ? '' : format.toUpperCase()} from ${html(formatBytes(job.result.input_bytes))} of inputs as "${html(job.result.title)}". ${html(formatBytes(Math.abs(saved)))} ${saved >= 0 ? 'saved' : 'larger than the inputs'}.${job.result.metadata_applied ? ' Applied IGDB metadata and cached available covers.' : ''}</div>
+      ${job.result.metadata_warning ? `<div class="job-result warning">${html(job.result.metadata_warning)}</div>` : ''}`;
+  }
   if (job.type === 'gog-import') {
     const summary = job.result?.import;
     return `<div class="job-result notice">${summary
@@ -208,7 +216,7 @@ export function renderJobCardBody(job) {
       </div>
       <span class="job-status ${attr(job.state)}">${html(status)}</span>
     </div>
-    ${job.type === 'gog-import'
+    ${job.type === 'conversion-import' ? renderConversionProgress(job) : job.type === 'gog-import'
       ? renderGogImportProgress(job.progress || {}, job.id)
       : job.type === 'library-scan' ? renderLibraryScanProgress(job)
         : job.type === 'romm-import' ? renderRommImportProgress(job) : renderUploadJobProgress(job)}
@@ -232,7 +240,7 @@ export function renderJobs() {
       </div>
       ${finished.length ? '<button class="ghost" type="button" data-action="clear-finished-jobs">Clear finished</button>' : ''}
     </section>
-    ${active.length ? '<p class="hint">You can switch admin sections while jobs run. Leaving admin or reloading cancels active jobs.</p>' : ''}
+    ${active.length ? '<p class="hint">You can switch admin sections while jobs run. Server-side jobs continue after reload; browser-only work may stop.</p>' : ''}
     <section class="jobs-summary" aria-label="Job summary">
       <div><span>Active</span><strong>${html(active.length)}</strong></div>
       <div><span>Finished</span><strong>${html(finished.length)}</strong></div>

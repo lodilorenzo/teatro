@@ -13,11 +13,11 @@ const fixture = JSON.parse(readFileSync(
 ));
 const file = (name) => ({ name, size: 1 });
 
-for (const entry of fixture.cases) {
-  test(`GOG title fixture: ${entry.id}`, () => {
-    assert.deepEqual(suggestGogTitleFromFileName(entry.filename), entry.expected);
-  });
-}
+test('GOG title filename fixtures', () => {
+  for (const entry of fixture.cases) {
+    assert.deepEqual(suggestGogTitleFromFileName(entry.filename), entry.expected, entry.id);
+  }
+});
 
 test('GOG title selection is order-independent and reads names only', () => {
   const contentAccesses = [];

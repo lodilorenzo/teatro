@@ -3,12 +3,13 @@ import { captureScroll, restoreScroll } from '../public/scroll.js';
 import { VERSION_LABEL, syncCoverImages } from '../public/shared.js';
 import { syncRommCovers } from './features/romm-covers.js';
 import { api } from './api.js';
-import { clearAuth, loadSavedAuth, saveAuth } from './auth.js';
-import { createSession, revokeSession } from '../public/auth.js';
+import { clearAuth, saveAuth } from './auth.js';
+import { createSession, loadSavedAuth, revokeSession } from '../public/auth.js';
 import { html } from './dom.js';
 import {
   clearBackgroundTransfers, resumeBackgroundTransfers, settleBackgroundTransferStarts,
 } from './features/background-transfer.js';
+import { ConversionController } from './features/conversion.js';
 import { GogImportController } from './features/gog-import.js';
 import { createIgdbController } from './features/igdb.js';
 import { activeJobCancellationUrl, JobsController } from './features/jobs.js';
@@ -19,8 +20,7 @@ import { createServerCleanupController } from './features/server-cleanup.js';
 import { UploadController } from './features/upload.js';
 import {
   beginRomPageRequest, dismissNotification, isCurrentRomPageRequest, isJobActive, resetSession,
-  setAuth, setGogImportStatus, setIgdbSettings, setIgdbStatus, setLoading, setPlatforms, setRomPage,
-  setScreen, setStats, setUser, showError, showNotice, state,
+  setAuth, setLoading, setPlatforms, setRomPage, setScreen, showError, showNotice, state,
 } from './state.js';
 import { renderDashboard } from './views/dashboard.js';
 import { renderJobs } from './views/jobs.js';
@@ -65,19 +65,22 @@ async function loadPlatforms() {
 }
 
 async function loadStats() {
-  setStats(await api('/api/admin/stats'));
+  state.stats = await api('/api/admin/stats');
 }
 
 async function loadIgdbStatus() {
-  setIgdbStatus(await api('/api/admin/igdb/status').catch(() => null));
+  state.igdbStatus = await api('/api/admin/igdb/status').catch(() => null);
 }
 
 async function loadIgdbSettings() {
-  setIgdbSettings(await api('/api/admin/igdb/settings').catch(() => null));
+  state.igdbSettings = await api('/api/admin/igdb/settings').catch(() => null);
 }
 
 async function loadGogImportStatus() {
-  setGogImportStatus(await api('/api/admin/gog-import/status').catch(() => null));
+  [state.gogImportStatus, state.conversionStatus] = await Promise.all([
+    api('/api/admin/gog-import/status').catch(() => null),
+    api('/api/admin/conversion/status').catch(() => null),
+  ]);
 }
 
 async function loadRommSourceStatus() {
@@ -100,7 +103,7 @@ async function refreshAll() {
   setLoading(true);
   render();
   try {
-    setUser(await api('/api/users/me'));
+    state.user = await api('/api/users/me');
     if (state.user.role !== 'admin') {
       window.location.replace('/');
       return;
@@ -117,6 +120,7 @@ async function refreshAll() {
   }
 }
 
+let conversionController = null;
 let gogImportController = null;
 let libraryScanController = null;
 let rommSourceController = null;
@@ -126,6 +130,7 @@ const jobsController = new JobsController({
   setError: showError,
   cancelJob: (jobId) => {
     const job = state.jobs.find(({ id }) => id === jobId);
+    if (job?.type === 'conversion-import') return conversionController?.cancelJob(jobId);
     if (job?.type === 'library-scan') return libraryScanController?.cancelJob(jobId);
     if (job?.type === 'gog-import') return gogImportController?.cancelJob(jobId);
     if (job?.type === 'romm-import') return rommSourceController?.cancelJob(jobId);
@@ -143,7 +148,13 @@ const controllerContext = {
   loadIgdbStatus,
   jobChanged: (jobId) => jobsController.refreshJob(jobId),
 };
-const uploadController = new UploadController(controllerContext);
+const uploadController = new UploadController({
+  ...controllerContext,
+  launchConversion: (selection) => conversionController.launchFiles(selection),
+  selectConversionFolders: (files, options) => conversionController.selectFolders(files, options),
+  clearConversion: () => conversionController.clearSelection(),
+});
+conversionController = new ConversionController(controllerContext);
 gogImportController = new GogImportController(controllerContext);
 libraryScanController = new LibraryScanController(controllerContext);
 const libraryController = createLibraryController(controllerContext);
@@ -279,6 +290,7 @@ function bindEvents() {
       render();
       return;
     }
+    conversionController.stopAll();
     gogImportController.stopAll({ removeJobs: false, clearStorage: true });
     libraryScanController.stopAll({ clearStorage: true });
     rommSourceController.stopAll({ clearStorage: true });
@@ -313,6 +325,7 @@ function bindEvents() {
     input.addEventListener('change', uploadController.onPlatformChange);
   });
 
+  conversionController.bind();
   gogImportController.bind();
   jobsController.bind();
   libraryController.bind();

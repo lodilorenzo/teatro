@@ -500,7 +500,7 @@ pub(super) async fn read_gog_import_multipart(
     upload.into_draft()
 }
 
-async fn read_text_field(
+pub(super) async fn read_text_field(
     state: &AppState,
     mut field: Field<'_>,
     name: &str,

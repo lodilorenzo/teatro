@@ -1,7 +1,7 @@
 import { clearCoverImages } from '../../public/shared.js';
 import { api } from '../api.js';
 import { normalizeIgdbSearchTitle } from '../dom.js';
-import { replaceRom, setIgdbResults, setIgdbSettings, state } from '../state.js';
+import { replaceRom, setIgdbResults, state } from '../state.js';
 
 export function createIgdbController(context) {
   const dependencies = Object.freeze({ ...context });
@@ -26,10 +26,10 @@ export function createIgdbController(context) {
       const payload = { client_id: clientId };
       if (clientSecret) payload.client_secret = clientSecret;
       try {
-        setIgdbSettings(await api('/api/admin/igdb/settings', {
+        state.igdbSettings = await api('/api/admin/igdb/settings', {
           method: 'PATCH',
           body: JSON.stringify(payload),
-        }));
+        });
         await dependencies.loadIgdbStatus();
         dependencies.setNotice('IGDB credentials saved. The secret remains write-only.');
       } catch (error) {
@@ -40,7 +40,7 @@ export function createIgdbController(context) {
 
     async onSettingsClear() {
       try {
-        setIgdbSettings(await api('/api/admin/igdb/settings', { method: 'DELETE' }));
+        state.igdbSettings = await api('/api/admin/igdb/settings', { method: 'DELETE' });
         await dependencies.loadIgdbStatus();
         dependencies.setNotice(state.igdbSettings.configured
           ? 'Stored IGDB credentials cleared. Environment credentials are still active.'

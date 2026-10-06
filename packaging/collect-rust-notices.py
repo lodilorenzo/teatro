@@ -10,6 +10,15 @@ import sys
 import tomllib
 
 
+SUPPLEMENTAL_NOTICES = {
+    'alloc-stdlib': 'packaging/licenses/alloc-stdlib',
+    'binrw': 'packaging/licenses/binrw',
+    'binrw_derive': 'packaging/licenses/binrw',
+    'crc-catalog': 'packaging/licenses/crc-catalog',
+    'rom-converto-lib': 'packaging/rom-converto',
+}
+
+
 def collect(destination):
     metadata = json.loads(subprocess.check_output(
         ['cargo', 'metadata', '--locked', '--offline', '--format-version', '1']))
@@ -20,8 +29,16 @@ def collect(destination):
         '--edges', 'normal,build', '--prefix', 'none', '--format', '{p}',
     ], text=True)
     selected = {tuple(line.split()[:2]) for line in tree.splitlines()}
+    # RSA is allowed only through the reviewed, key-free rom-converto-lib pin.
     if any(name == 'rsa' for name, _ in selected):
-        raise ValueError('Disabled RSA dependency entered the native build graph')
+        parents = subprocess.check_output([
+            'cargo', 'tree', '--locked', '--offline', '--target', host,
+            '--edges', 'normal,build', '--invert', 'rsa', '--depth', '1',
+            '--prefix', 'none', '--format', '{p}',
+        ], text=True)
+        if [line.split()[:2] for line in parents.splitlines()] != [
+                ['rsa', 'v0.9.10'], ['rom-converto-lib', 'v0.22.0']]:
+            raise ValueError('RSA entered the native build graph outside the reviewed exception')
     packages = {(p['name'], 'v' + p['version']): p for p in metadata['packages']}
     inventory = list(csv.DictReader(Path('RUST_DEPENDENCY_LICENSES.tsv').open(), delimiter='\t'))
     reviewed = {(r['crate'], 'v' + r['version']): r for r in inventory}
@@ -35,14 +52,15 @@ def collect(destination):
         if package['id'] == metadata['resolve']['root']:
             continue
         row = reviewed[key]
-        if row['archive_sha256'] != checksums[key] or row['declared_license'] != package['license']:
+        # Git dependencies have no archive checksum; their pinned commit is reviewed instead.
+        checksum = checksums[key] or 'git:' + package['source'].rsplit('#', 1)[1]
+        if row['archive_sha256'] != checksum or row['declared_license'] != (package['license'] or 'NOASSERTION'):
             raise ValueError(f'License review is stale: {key}')
         source = Path(package['manifest_path']).parent
         names = row['notice_files'].split('; ')
-        # This crate omits LICENSES from its archive. Retain the exact VCS notice.
-        if key == ('crc-catalog', 'v2.5.0'):
-            source = Path('packaging/licenses/crc-catalog')
-            names = ['MIT.txt']
+        # These archives omit their notices. Retain the exact VCS notice instead.
+        if key[0] in SUPPLEMENTAL_NOTICES:
+            source = Path(SUPPLEMENTAL_NOTICES[key[0]])
         for name in names:
             path = source / name
             if not path.resolve().is_relative_to(source.resolve()) or '..' in Path(name).parts or not path.is_file():

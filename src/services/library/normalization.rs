@@ -312,6 +312,48 @@ pub(crate) fn sanitize_upload_file_name(file_name: &str) -> Result<String, Libra
     Ok(file_name.to_string())
 }
 
+/// Keep game titles readable while producing flat, cross-platform archive names.
+pub(crate) fn archive_file_name(title: &str, extension: &str) -> String {
+    let mut base = String::new();
+    let mut previous_separator = false;
+    for character in title.trim().chars() {
+        let unsafe_character = character.is_control()
+            || matches!(
+                character,
+                '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*'
+            );
+        let character = if unsafe_character { '_' } else { character };
+        let separator = character == '_' || character.is_whitespace();
+        if separator {
+            if !previous_separator {
+                base.push(' ');
+            }
+        } else {
+            base.push(character);
+        }
+        previous_separator = separator;
+        if base.len() >= 180 {
+            break;
+        }
+    }
+    let mut base = base
+        .trim_matches(|character| matches!(character, ' ' | '.'))
+        .to_string();
+    if base.is_empty() {
+        base = "Game".to_string();
+    }
+    let uppercase = base.split('.').next().unwrap_or("").to_ascii_uppercase();
+    let reserved = matches!(uppercase.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || uppercase
+            .strip_prefix("COM")
+            .or_else(|| uppercase.strip_prefix("LPT"))
+            .is_some_and(|suffix| suffix.len() == 1 && matches!(suffix.as_bytes()[0], b'1'..=b'9'));
+    if reserved {
+        base.insert_str(uppercase.len(), " Game");
+    }
+    format!("{base}.{extension}")
+}
+
 pub(crate) fn normalized_title(
     requested_title: Option<&str>,
     file_name: &str,
@@ -461,6 +503,29 @@ mod tests {
         collision_file_name, independent_role, is_disc_image_extension, sanitize_upload_file_name,
         slugify, title_from_file_name,
     };
+
+    #[test]
+    fn archive_names_preserve_plain_titles_and_stay_safe() {
+        assert_eq!(
+            super::archive_file_name("  Super Mario 3D World  ", "wua"),
+            "Super Mario 3D World.wua"
+        );
+        assert_eq!(
+            super::archive_file_name("Pokémon: Game / Deluxe", "wua"),
+            "Pokémon Game Deluxe.wua"
+        );
+        for title in ["CON", "CON.txt", "LPT1", "../", "", &"é".repeat(512)] {
+            let name = super::archive_file_name(title, "wua");
+            assert!(name.len() < 255);
+            assert!(sanitize_upload_file_name(&name).is_ok());
+            assert!(!name.contains(['/', '\\', ':']));
+            assert!(name.ends_with(".wua"));
+        }
+        assert_eq!(
+            super::archive_file_name("CON.txt", "wua"),
+            "CON Game.txt.wua"
+        );
+    }
 
     #[test]
     fn rejects_upload_filename_traversal() {

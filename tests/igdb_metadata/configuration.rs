@@ -16,10 +16,12 @@ async fn igdb_status_and_search_use_mocked_upstream() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let status = response_json(response).await;
-    assert_eq!(status["configured"], true);
-    assert_eq!(status["client_id_configured"], true);
-    assert_eq!(status["client_secret_configured"], true);
-    assert_eq!(status["token_cached"], false);
+    assert_eq!(status, json!({
+        "configured": true,
+        "client_id_configured": true,
+        "client_secret_configured": true,
+        "token_cached": false,
+    }));
 
     let response = app
         .clone()

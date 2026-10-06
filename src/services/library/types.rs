@@ -325,12 +325,12 @@ pub enum LibraryServiceError {
 }
 
 #[derive(Debug, Clone)]
-pub(super) struct PlanInputFile {
-    pub(super) index: usize,
-    pub(super) original_file_name: String,
-    pub(super) file_size_bytes: Option<u64>,
-    pub(super) staged_path: Option<PathBuf>,
-    pub(super) manifest_contents: Option<String>,
+pub(crate) struct PlanInputFile {
+    pub index: usize,
+    pub original_file_name: String,
+    pub file_size_bytes: Option<u64>,
+    pub staged_path: Option<PathBuf>,
+    pub manifest_contents: Option<String>,
 }
 
 #[derive(Debug, Clone)]

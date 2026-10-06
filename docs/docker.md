@@ -21,8 +21,8 @@ They are not a stable release or a guarantee of support for every Docker host.
 
 The [GHCR package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
 lists published versions. These instructions target
-`ghcr.io/lodilorenzo/teatro:0.19.9`; there is no `latest` tag. The image will be
-available after the 0.19.9 publication workflow completes.
+`ghcr.io/lodilorenzo/teatro:0.21.3`; there is no `latest` tag. The image will be
+available after the 0.21.3 publication workflow completes.
 
 Install a [current Cosign release](https://docs.sigstore.dev/cosign/system_config/installation/)
 with Sigstore bundle support. Review the [known findings and limits](image-publication.md#known-findings-and-scanner-limits)
@@ -40,7 +40,7 @@ mkdir teatro
 cd teatro
 curl --fail --location --output docker-compose.yml \
   https://raw.githubusercontent.com/lodilorenzo/teatro/main/docker-compose.yml
-export TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro:0.19.9
+export TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro:0.21.3
 cosign verify "$TEATRO_IMAGE" \
   --certificate-identity 'https://github.com/lodilorenzo/teatro/.github/workflows/docker.yml@refs/heads/main' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
