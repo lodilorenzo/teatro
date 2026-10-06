@@ -2,9 +2,10 @@
 
 [Docker operations](docker.md) · [Packaging notices](../packaging/THIRD_PARTY_NOTICES.md)
 
-The 0.21.3 destination is `ghcr.io/lodilorenzo/teatro:0.21.3`. Publication is
-manual and beta only. The image tag comes from [Cargo.toml](../Cargo.toml), with
-no `latest` tag, Git tag or stable GitHub Release. Check the
+Version 0.21.3 is published as `ghcr.io/lodilorenzo/teatro:0.21.3`, index digest
+`sha256:da988f206f70b93b52b4a149c4394a7a2f0e4ee1361a3506e016fdad83163bef`. Publication is manual and beta only. The image tag comes from
+[Cargo.toml](../Cargo.toml). The workflow creates no `latest` tag, Git tag or
+release; beta source versions are marked separately as GitHub pre-releases. Check the
 [package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
 and completed workflow before assuming a version is available.
 
