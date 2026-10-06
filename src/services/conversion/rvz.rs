@@ -147,8 +147,8 @@ fn validate_wbfs(path: &Path, bytes: u64) -> io::Result<()> {
     file.read_exact(&mut disc_header)?;
     let mut table = vec![0; count * 2];
     file.read_exact(&mut table)?;
-    for entry in table.chunks_exact(2) {
-        let block = u16::from_be_bytes(entry.try_into().unwrap()) as u64;
+    for entry in table.as_chunks::<2>().0 {
+        let block = u16::from_be_bytes(*entry) as u64;
         if block != 0 && (block + 1) * block_size > bytes {
             return Err(io::Error::other("Truncated or split WBFS image"));
         }
@@ -172,7 +172,7 @@ fn validate_wii(source: &mut (impl Read + Seek), bytes: u64) -> io::Result<()> {
     source.read_exact(&mut groups)?;
     let mut ranges = Vec::new();
     let mut game = false;
-    for group in groups.chunks_exact(8) {
+    for group in groups.as_chunks::<8>().0 {
         let count = be32(group);
         let table = be32(&group[4..]) * 4;
         if count == 0 {
@@ -184,7 +184,7 @@ fn validate_wii(source: &mut (impl Read + Seek), bytes: u64) -> io::Result<()> {
         source.seek(SeekFrom::Start(table))?;
         let mut entries = vec![0; count as usize * 8];
         source.read_exact(&mut entries)?;
-        for entry in entries.chunks_exact(8) {
+        for entry in entries.as_chunks::<8>().0 {
             let offset = be32(entry) * 4;
             let kind = be32(&entry[4..]) as u32;
             if offset < 0x40020 || offset + 0x2c0 > bytes {

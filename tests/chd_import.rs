@@ -36,7 +36,12 @@ fn iso(platform: &str) -> Vec<u8> {
 fn cd(platform: &str) -> Vec<u8> {
     let iso = iso(if platform == "ps2" { "ps2" } else { "psx" });
     let mut raw = vec![0; 64 * 2352];
-    for (sector, payload) in raw.chunks_exact_mut(2352).zip(iso.chunks_exact(2048)) {
+    for (sector, payload) in raw
+        .as_chunks_mut::<2352>()
+        .0
+        .iter_mut()
+        .zip(iso.as_chunks::<2048>().0)
+    {
         sector[..12].copy_from_slice(&[0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0]);
         sector[15] = 1;
         sector[16..2064].copy_from_slice(payload);
@@ -271,7 +276,12 @@ async fn psx_iso_disc_sets_and_standalone_images_keep_grouping_and_decoded_bytes
     let cooked = iso("psx");
     let raw = cd("psx");
     let mut mode2 = vec![0; 64 * 2352];
-    for (sector, payload) in mode2.chunks_exact_mut(2352).zip(cooked.chunks_exact(2048)) {
+    for (sector, payload) in mode2
+        .as_chunks_mut::<2352>()
+        .0
+        .iter_mut()
+        .zip(cooked.as_chunks::<2048>().0)
+    {
         sector[..12].copy_from_slice(&raw[..12]);
         sector[15] = 2;
         sector[24..2072].copy_from_slice(payload);
