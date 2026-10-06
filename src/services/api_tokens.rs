@@ -34,17 +34,7 @@ pub fn generate_token() -> String {
 }
 
 pub fn hash_token(token: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(token.as_bytes());
-    let digest = hasher.finalize();
-
-    let mut output = String::with_capacity(digest.len() * 2);
-    for byte in digest {
-        use std::fmt::Write;
-        let _ = write!(&mut output, "{byte:02x}");
-    }
-
-    output
+    format!("{:x}", Sha256::digest(token.as_bytes()))
 }
 
 pub fn token_prefix(token: &str) -> String {
@@ -127,6 +117,10 @@ mod tests {
 
         assert!(token.starts_with(TOKEN_PREFIX));
         assert_eq!(hash_token(&token).len(), 64);
+        assert_eq!(
+            hash_token("abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
         assert!(token.starts_with(&token_prefix(&token)));
     }
 

@@ -60,6 +60,42 @@ Defaults allow 128 GiB per uploaded file, 256 files and 128 GiB per batch, with 
 concurrent uploads. Browser storage, available disk and proxy limits also apply.
 See [configuration](configuration.md#uploads-and-downloads) before raising limits.
 
+## Compress on import (experimental)
+
+`TEATRO_CONVERSION_ENABLED=true` adds optional compression to Import. It is
+disabled by default. Outputs are not yet qualified with emulators or clients;
+keep your originals. Each option is an unchecked checkbox that appears only for
+eligible files and clears when files or platform change. Once started, inspection,
+compression, verification and publication run automatically in Jobs, including
+when the verified output is larger than the input.
+
+| Platform | Input | Output |
+| --- | --- | --- |
+| Wii U | Decrypted base game folder, with matching update and DLC folders | One `.wua` named from the editable game title |
+| GameCube | One plain `.iso` or `.gcm` | `.rvz` |
+| Wii | One `.iso` or single-file `.wbfs` | `.rvz` |
+| PS1, PS2, PSP, Saturn, Sega CD, PC Engine CD, Neo Geo CD | Supported ISO, IMG or raw 2352-byte CUE/BIN discs | One `.chd` per disc, with `.m3u` playlists for disc sets |
+| Other non-disc platforms | Uncompressed single-file ROMs | One `.7z` per ROM |
+
+- **Wii U:** use **Add decrypted folder** or drop a parent folder containing the
+  game, update and DLC folders. The browser reads local XML metadata to flag
+  incomplete or mismatched families. Updates and DLC cannot be imported alone.
+  After publication, Teatro applies IGDB metadata when credentials are configured;
+  a failed match leaves the game imported with a warning.
+- **RVZ:** uses Zstandard level 22 with 128 KiB chunks and compares every decoded
+  disc byte. Existing RVZ, WIA, GCZ, NKit and split WBFS files are not converted.
+- **CHD:** review files first so Teatro can group discs into games. Each game
+  becomes a separate job; keep the page open until queued uploads have started.
+  SBI companions stay attached. Audio or mixed-mode IMG images need their CUE.
+  INDEX 00, POSTGAP, track flags and other track layouts are rejected.
+- **7z:** each raw ROM becomes one LZMA2 archive that keeps its original filename.
+  Existing archives in a mixed selection upload unchanged. Disc and disk platforms,
+  multi-file games and compressed inputs are excluded.
+
+Every output is decoded and checked against the input before journaled
+publication. Conversion paths must be ASCII. One conversion runs at a time, jobs
+are cancelled after one hour and cannot resume after a restart.
+
 ## Scan existing files
 
 Place files under the configured default library root. Use `fs_slug` values from

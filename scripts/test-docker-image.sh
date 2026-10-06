@@ -88,6 +88,7 @@ docker exec "$CONTAINER" sh -ec '
   test -s /usr/share/doc/teatro/SECURITY-EXCEPTIONS.yaml
   test -s /usr/share/doc/teatro/LICENSE
   test -s /usr/share/doc/teatro/PLATFORM-ICONS-CC0
+  test -s /usr/share/doc/teatro/ROM-CONVERTO-LICENSE
   test -s /usr/share/doc/teatro/runtime-packages.tsv
   test -s /usr/share/doc/teatro/runtime-sources.txt
   cd /usr/share/doc/teatro/rust; sha256sum --check --strict SHA256SUMS >/dev/null

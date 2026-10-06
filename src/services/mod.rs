@@ -4,6 +4,7 @@ pub mod api_tokens;
 pub mod auth;
 pub(crate) mod auth_rate_limit;
 pub(crate) mod background_transfers;
+pub(crate) mod conversion;
 pub mod file_operations;
 pub(crate) mod gog_import;
 pub(crate) mod igdb;

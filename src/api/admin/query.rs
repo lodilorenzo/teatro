@@ -149,28 +149,20 @@ impl BulkDeleteConfirmQuery {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct DeleteRomQuery {
-    pub(super) delete_files: bool,
-}
-
-impl DeleteRomQuery {
-    pub(super) fn parse(raw_query: Option<&str>) -> Result<Self, ApiError> {
-        for (key, value) in query_pairs(raw_query) {
-            if key != "delete_files" {
-                continue;
-            }
-
-            let delete_files = parse_bool("delete_files", &value)?;
-            if !delete_files {
-                return Err(ApiError::bad_request(
-                    "delete_files=false is not supported; deleting a ROM also removes its managed filesystem entries",
-                ));
-            }
+pub(super) fn validate_delete_rom_query(raw_query: Option<&str>) -> Result<(), ApiError> {
+    for (key, value) in query_pairs(raw_query) {
+        if key != "delete_files" {
+            continue;
         }
 
-        Ok(Self { delete_files: true })
+        if !parse_bool("delete_files", &value)? {
+            return Err(ApiError::bad_request(
+                "delete_files=false is not supported; deleting a ROM also removes its managed filesystem entries",
+            ));
+        }
     }
+
+    Ok(())
 }
 
 fn query_pairs(raw_query: Option<&str>) -> Vec<(String, String)> {

@@ -117,6 +117,8 @@ pub async fn admin_asset(ApiPath(path): ApiPath<String>) -> Result<Response, Api
         "state.js" => js!("admin/state.js"),
         "dom.js" => js!("admin/dom.js"),
         "views/dashboard.js" => js!("admin/views/dashboard.js"),
+        "views/conversion.js" => js!("admin/views/conversion.js"),
+        "features/conversion.js" => js!("admin/features/conversion.js"),
         "views/gog-import.js" => js!("admin/views/gog-import.js"),
         "views/jobs.js" => js!("admin/views/jobs.js"),
         "views/library.js" => js!("admin/views/library.js"),

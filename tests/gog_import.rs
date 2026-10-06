@@ -1198,7 +1198,7 @@ mod unix_tests {
                 Some(if wrong_hash { "0".repeat(64) } else { digest });
             config.gog_import.timeout_seconds = if mode == "timeout" { 1 } else { 10 };
             config.gog_import.max_extracted_bytes = if mode == "archive-progress" {
-                8 * 1024 * 1024
+                128 * 1024 * 1024
             } else {
                 1024 * 1024
             };
@@ -1345,7 +1345,7 @@ if [ "$phase" = 'extract' ]; then
   fi
   printf '%s' 'game payload' > "$output/app/data/game.dat"
   if [ "$mode" = 'archive-progress' ]; then
-    /bin/dd if=/dev/urandom of="$output/app/data/progress.dat" bs=1048576 count=4 2>/dev/null
+    /bin/dd if=/dev/urandom of="$output/app/data/progress.dat" bs=1048576 count=64 2>/dev/null
   fi
   exit 0
 fi

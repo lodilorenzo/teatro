@@ -66,6 +66,7 @@ pub struct AppConfig {
     pub uploads: UploadConfig,
     pub download_archives: DownloadArchiveConfig,
     pub gog_import: GogImportConfig,
+    pub conversion_enabled: bool,
     pub romm_source: RommSourceConfig,
     pub log_format: LogFormat,
     pub lan_discovery: LanDiscoveryConfig,
@@ -390,6 +391,10 @@ impl AppConfig {
             uploads,
             download_archives,
             gog_import,
+            conversion_enabled: parse_bool(
+                "TEATRO_CONVERSION_ENABLED",
+                prefixed_env(&get, "CONVERSION_ENABLED").unwrap_or_else(|| "false".into()),
+            )?,
             romm_source,
             log_format,
             lan_discovery,

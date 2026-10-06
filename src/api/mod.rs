@@ -145,6 +145,15 @@ pub fn router(state: AppState) -> Router {
             "/background-transfers/{id}",
             delete(admin::transfers::cancel_background_transfer),
         )
+        .route("/conversion/status", get(admin::conversion::status))
+        .route(
+            "/conversion-imports",
+            post(admin::conversion::create).layer(DefaultBodyLimit::disable()),
+        )
+        .route(
+            "/conversion-imports/{id}",
+            get(admin::conversion::job).delete(admin::conversion::cancel),
+        )
         .route("/gog-import/status", get(admin::gog_import_status))
         .route(
             "/gog-imports",

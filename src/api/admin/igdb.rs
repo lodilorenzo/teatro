@@ -11,7 +11,7 @@ use crate::{
     },
     error::ApiError,
     repositories::{igdb_settings, platforms},
-    services::igdb::{AppliedIgdbMetadata, IgdbGameCandidate},
+    services::igdb::{AppliedIgdbMetadata, IgdbGameCandidate, IgdbStatus},
     state::AppState,
 };
 
@@ -19,7 +19,7 @@ use super::{
     audit::{record_igdb_metadata_event, record_igdb_settings_event},
     dto::{
         ApplyIgdbMetadataRequest, ApplyIgdbMetadataResponse, IgdbSettingsResponse,
-        IgdbStatusResponse, SaveIgdbSettingsRequest,
+        SaveIgdbSettingsRequest,
     },
     errors::{map_database_error, map_igdb_error},
     query::{IgdbSearchQuery, normalize_igdb_setting},
@@ -28,12 +28,10 @@ use super::{
 pub async fn igdb_status(
     _actor: AdminUser,
     State(state): State<AppState>,
-) -> Result<Json<IgdbStatusResponse>, ApiError> {
+) -> Result<Json<IgdbStatus>, ApiError> {
     let config = state.igdb_config().await.map_err(map_database_error)?;
 
-    Ok(Json(IgdbStatusResponse::from(
-        state.igdb_client().status(&config),
-    )))
+    Ok(Json(state.igdb_client().status(&config)))
 }
 
 pub async fn get_igdb_settings(

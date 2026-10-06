@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  coverPath, html, normalizeIgdbSearchTitle, parseCsv, slugifyTitle,
-} from './dom.js';
+import { coverPath } from '../public/catalog.js';
+import { html, normalizeIgdbSearchTitle, parseCsv, slugifyTitle } from './dom.js';
 
 test('html escapes markup and quotes', () => {
   assert.equal(html(`<a title="x">Tom & 'Ada'</a>`), '&lt;a title=&quot;x&quot;&gt;Tom &amp; &#39;Ada&#39;&lt;/a&gt;');

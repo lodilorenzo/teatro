@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
 
-FROM rust:1.88.0-bookworm@sha256:af306cfa71d987911a781c37b59d7d67d934f49684058f96cf72079c3626bfe0 AS teatro-builder
+FROM rust:1.93.0-bookworm@sha256:d0a4aa3ca2e1088ac0c81690914a0d810f2eee188197034edf366ed010a2b382 AS teatro-builder
 
 ARG TARGETARCH
 ARG BUILD_JOBS=2
@@ -9,11 +9,11 @@ ARG BUILD_JOBS=2
 ENV LIBSQLITE3_SYS_USE_PKG_CONFIG=1
 RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
     && printf '%s\n' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z bookworm main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260917T000000Z bookworm-security main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z bookworm main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20261005T000000Z bookworm-security main' \
       > /etc/apt/sources.list \
     && apt-get update \
-    && apt-get install --no-install-recommends -y libsqlite3-dev pkg-config \
+    && apt-get install --no-install-recommends -y libclang-dev libsqlite3-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Embed Rust metadata for scanners; retain Cargo tree separately to show active dependencies.
@@ -24,6 +24,7 @@ WORKDIR /source
 COPY Cargo.toml Cargo.lock build.rs RUST_DEPENDENCY_LICENSES.tsv ./
 COPY packaging/collect-rust-notices.py packaging/collect-rust-notices.py
 COPY packaging/licenses packaging/licenses
+COPY packaging/rom-converto packaging/rom-converto
 COPY migrations ./migrations
 COPY src ./src
 COPY web/admin ./web/admin
@@ -55,9 +56,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
     && printf '%s\n' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z trixie main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z trixie-updates main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260917T000000Z trixie-security main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z trixie main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z trixie-updates main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20261005T000000Z trixie-security main' \
       > /etc/apt/sources.list \
     && printf 'Acquire::Check-Valid-Until "false";\nAcquire::Retries "3";\n' \
       > /etc/apt/apt.conf.d/99teatro-snapshot \
@@ -165,7 +166,7 @@ RUN set -eu; \
       '- Build base: debian:trixie-20260824-slim' \
       '- Build base index digest: sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132' \
       "- Build base $TARGETPLATFORM manifest: $build_base_manifest" \
-      '- Debian package snapshot: 2026-09-17T00:00:00Z' \
+      '- Debian package snapshot: 2026-10-05T00:00:00Z' \
       '- Build mode: Release, GNU BFD linker, static Boost/liblzma/zlib/bzip2/zstd/libstdc++/libgcc, LTO disabled' \
       > /bundle/third-party/innoextract/PROVENANCE.md
 
@@ -173,15 +174,15 @@ FROM debian:trixie-20260824-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf
 
 RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
     && printf '%s\n' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z trixie main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260917T000000Z trixie-updates main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260917T000000Z trixie-security main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z trixie main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z trixie-updates main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20261005T000000Z trixie-security main' \
       > /etc/apt/sources.list \
     && printf 'Acquire::Check-Valid-Until "false";\nAcquire::Retries "3";\n' \
       > /etc/apt/apt.conf.d/99teatro-snapshot \
     && apt-get update \
     && apt-get upgrade --no-install-recommends -y \
-    && apt-get install --no-install-recommends -y ca-certificates curl libsqlite3-0 \
+    && apt-get install --no-install-recommends -y ca-certificates curl libsqlite3-0 libstdc++6 zlib1g \
     && rm -rf /var/lib/apt/lists/* \
     && install -d -o 10001 -g 10001 /data \
     && mkdir -p /usr/share/doc/teatro
@@ -199,6 +200,7 @@ COPY THIRD_PARTY_NOTICES.md /usr/share/doc/teatro/SOURCE-THIRD-PARTY-NOTICES.md
 COPY web/public/platform-icons/LICENSE /usr/share/doc/teatro/PLATFORM-ICONS-CC0
 COPY --from=innoextract-builder /bundle/tools /opt/teatro/tools
 COPY --from=innoextract-builder /bundle/third-party/innoextract /usr/share/doc/teatro/innoextract
+COPY packaging/rom-converto/LICENSE /usr/share/doc/teatro/ROM-CONVERTO-LICENSE
 COPY packaging/THIRD_PARTY_NOTICES.md /usr/share/doc/teatro/THIRD_PARTY_NOTICES.md
 COPY packaging/trivy-ignore.yaml /usr/share/doc/teatro/SECURITY-EXCEPTIONS.yaml
 COPY web/public/icons.LICENSE /usr/share/doc/teatro/LUCIDE-ICONS-LICENSE

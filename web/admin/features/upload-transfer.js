@@ -47,7 +47,15 @@ export function createUploadTransfer(context) {
         reject(new Error('Not signed in'));
         return;
       }
+      const signal = options?.signal;
+      if (signal?.aborted) {
+        reject(new DOMException('Upload was aborted.', 'AbortError'));
+        return;
+      }
       const xhr = new XMLHttpRequest();
+      const abort = () => xhr.abort();
+      signal?.addEventListener('abort', abort, { once: true });
+      xhr.addEventListener('loadend', () => signal?.removeEventListener('abort', abort));
       const startedAt = options?.batchStartedAt || performance.now();
       const completedBytes = options?.completedBytes || 0;
       const fileSize = options?.fileSize || 0;
@@ -57,7 +65,11 @@ export function createUploadTransfer(context) {
       xhr.setRequestHeader('Authorization', state.auth.header);
       xhr.upload.addEventListener('progress', (event) => {
         const seconds = Math.max((performance.now() - startedAt) / 1000, 0.001);
-        const loaded = Math.min(totalBytes, completedBytes + Math.min(fileSize || event.loaded, event.loaded));
+        // Multipart overhead can be large for folder uploads; use the transport ratio when known.
+        const uploaded = event.lengthComputable && event.total > 0 && fileSize > 0
+          ? fileSize * Math.min(1, event.loaded / event.total)
+          : Math.min(fileSize || event.loaded, event.loaded);
+        const loaded = Math.min(totalBytes, completedBytes + uploaded);
         dependencies.updateProgress({
           active: true,
           fileName: options?.fileName || 'Uploading',

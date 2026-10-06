@@ -352,6 +352,25 @@ test('Import combines ROM uploads and GOG setup imports on one page', () => {
   assert.doesNotMatch(markup, /legally entitled|does not contact GOG/);
 });
 
+test('Wii U folders share the Game files card and only appear for enabled Wii U imports', () => {
+  const previous = { platforms: state.platforms, uploadPlatformId: state.uploadPlatformId, conversionStatus: state.conversionStatus };
+  state.platforms = [{ id: 1, slug: 'wiiu', display_name: 'Nintendo Wii U' }, { id: 2, slug: 'nes', display_name: 'NES' }];
+  state.conversionStatus = { enabled: true };
+  try {
+    state.uploadPlatformId = '2';
+    assert.doesNotMatch(renderImport(), /id="conversion-form"/);
+    state.uploadPlatformId = '1';
+    const markup = renderImport();
+    assert.equal((markup.match(/class="card import-card"/g) || []).length, 2);
+    assert.match(markup, /id="conversion-folder"/);
+    assert.equal((markup.slice(markup.indexOf('import-upload-section'), markup.indexOf('import-gog-section')).match(/class="drop-zone"/g) || []).length, 1);
+    assert.doesNotMatch(markup, /id="conversion-drop-zone"/);
+    assert.match(markup, /Drop game files or decrypted Wii U folders here/);
+    state.conversionStatus.enabled = false;
+    assert.doesNotMatch(renderImport(), /id="conversion-folder"/);
+  } finally { Object.assign(state, previous); }
+});
+
 test('upload renderer explains the Windows archive install contract', () => {
   const markup = renderUpload();
   assert.match(markup, /For Windows, upload/);
@@ -404,6 +423,21 @@ test('Jobs renders upload transfer speed and byte progress', () => {
   } finally {
     state.jobs = previousJobs;
   }
+});
+
+test('WUA Jobs reports applied IGDB metadata or escaped non-fatal matching warnings', () => {
+  const previousJobs = state.jobs;
+  state.jobs = [{ id: 'wua_complete', type: 'conversion-import', state: 'succeeded', title: 'Base game',
+    progress: {}, result: { title: 'Base game', input_bytes: 1024, output_bytes: 512, metadata_applied: true } }];
+  try {
+    assert.match(renderJobs(), /Applied IGDB metadata and cached available covers/);
+    state.jobs[0].result.metadata_applied = false;
+    state.jobs[0].result.metadata_warning = 'No match for <game>. The WUA was imported.';
+    const markup = renderJobs();
+    assert.match(markup, /class="job-result warning">No match for &lt;game&gt;/);
+    assert.match(markup, /Complete/);
+    assert.doesNotMatch(markup, /<game>/);
+  } finally { state.jobs = previousJobs; }
 });
 
 test('Jobs keeps running work above queued work', () => {

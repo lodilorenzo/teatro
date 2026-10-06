@@ -25,10 +25,18 @@ is rendered at twice its display resolution using the font retained in `web/font
 
 Cargo fetches third-party crates separately. No crate sources or compiled libraries
 are vendored in this source tree. [The locked inventory](RUST_DEPENDENCY_LICENSES.tsv)
-records all 304 external packages, their exact versions, declared terms, selected
+records all 437 external packages, their exact versions, declared terms, selected
 license route, crate checksums and notice locations within their published archives.
 Dependencies retain their own licenses, including their permissions for commercial
 use independently of Teatro.
+
+`rom-converto-lib` is fetched from its Git repository at a pinned revision, not
+crates.io; its MIT notice is retained in [packaging/rom-converto/](packaging/rom-converto/LICENSE).
+Its dependency graph compiles some non-Rust code, notably the UnRAR source in
+`unrar-ng-sys` under the freeware UnRAR license. That license permits use and
+redistribution but forbids using the code to re-create RAR compression. It also
+compiles public-domain LZMA SDK files through `lzma-sdk-sys`. The inventory
+records the reviewed terms of each such component.
 
 Publishing these source files and build recipes does not redistribute the
 `innoextract` executable, its source archive, Cargo dependencies, compiler runtimes

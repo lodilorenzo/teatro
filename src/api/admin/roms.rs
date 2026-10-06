@@ -10,6 +10,7 @@ use crate::{
         extractors::{ApiJson, ApiPath},
         romm::RomResponse,
     },
+    domain::library::LibraryStats,
     error::ApiError,
     repositories::{platforms, roms as rom_repository},
     services::{igdb, library},
@@ -18,12 +19,9 @@ use crate::{
 
 use super::{
     audit::record_update_event,
-    dto::{
-        BulkDeleteRomsResponse, DeleteRomResponse, LibraryStatsResponse, RomFilesResponse,
-        UpdateRomRequest,
-    },
+    dto::{BulkDeleteRomsResponse, DeleteRomResponse, RomFilesResponse, UpdateRomRequest},
     errors::{bytes_error, map_database_error, map_igdb_error, map_library_error},
-    query::{BulkDeleteConfirmQuery, DeleteRomQuery},
+    query::{BulkDeleteConfirmQuery, validate_delete_rom_query},
 };
 
 pub async fn update_rom(
@@ -133,16 +131,11 @@ pub async fn delete_rom(
     ApiPath(id): ApiPath<i64>,
     RawQuery(raw_query): RawQuery,
 ) -> Result<Json<DeleteRomResponse>, ApiError> {
-    let query = DeleteRomQuery::parse(raw_query.as_deref())?;
+    validate_delete_rom_query(raw_query.as_deref())?;
 
-    let outcome = library::delete_rom(
-        &state,
-        id,
-        query.delete_files,
-        Some(_actor.public_user().id),
-    )
-    .await
-    .map_err(map_library_error)?;
+    let outcome = library::delete_rom(&state, id, Some(_actor.public_user().id))
+        .await
+        .map_err(map_library_error)?;
 
     Ok(Json(DeleteRomResponse::from(outcome)))
 }
@@ -150,8 +143,8 @@ pub async fn delete_rom(
 pub async fn stats(
     _actor: AdminUser,
     State(state): State<AppState>,
-) -> Result<Json<LibraryStatsResponse>, ApiError> {
-    let stats = library::stats(&state).await.map_err(map_library_error)?;
-
-    Ok(Json(LibraryStatsResponse::from(stats)))
+) -> Result<Json<LibraryStats>, ApiError> {
+    Ok(Json(
+        library::stats(&state).await.map_err(map_library_error)?,
+    ))
 }

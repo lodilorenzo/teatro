@@ -503,7 +503,7 @@ tr:hover td { background: color-mix(in srgb, var(--surface-raised) 45%, transpar
   white-space: nowrap;
 }
 .upload-file-list small { font-family: var(--font-mono); color: var(--text-soft); }
-.upload-file-actions { display: flex; justify-content: flex-end; margin-top: 0.45rem; }
+.upload-file-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; margin-top: 0.45rem; }
 .upload-file-actions button { min-height: 0; padding: 0.3rem 0.58rem; font-size: 0.76rem; }
 .upload-file-remove { min-height: 0; padding: 0.24rem 0.5rem; font-size: 0.74rem; }
 .upload-progress {
@@ -516,6 +516,9 @@ tr:hover td { background: color-mix(in srgb, var(--surface-raised) 45%, transpar
   background: var(--backdrop);
 }
 .upload-progress[hidden] { display: none; }
+.conversion-progress p { margin: 0.25rem 0 0; }
+.conversion-progress .hint { font-size: 0.85rem; }
+.conversion-progress .upload-progress-labels { font-size: 0.8rem; font-variant-numeric: tabular-nums; }
 .upload-progress-current { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 0.68rem; color: var(--cyan); }
 .upload-progress progress { width: 100%; height: 0.6rem; accent-color: var(--accent); }
 .upload-progress-labels {
@@ -553,6 +556,20 @@ tr:hover td { background: color-mix(in srgb, var(--surface-raised) 45%, transpar
   padding-bottom: 0.65rem;
 }
 .import-card-header .section-title { margin: 0; }
+.conversion-folders { margin-top: 1.5rem; border-top: 1px solid var(--line-bright); padding-top: 1.25rem; }
+.conversion-folders h3 { margin-bottom: 0.55rem; }
+.conversion-folders .drop-zone:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+.conversion-folders .drop-zone:has(input:disabled) { cursor: progress; }
+.conversion-summary { margin: 0.65rem 0; }
+.conversion-flags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.75rem; padding: 0; list-style: none; }
+.conversion-flags li { border: 1px solid var(--line-bright); border-radius: var(--radius-s); padding: 0.2rem 0.45rem; font-size: 0.85rem; color: var(--text-soft); }
+.conversion-flags .detected { border-color: var(--mint); color: var(--mint); }
+.conversion-title-list { margin: 0 0 0.85rem; padding: 0; list-style: none; }
+.conversion-title-list li { display: flex; align-items: start; gap: 0.6rem; border-bottom: 1px solid var(--line); padding: 0.65rem 0; }
+.conversion-title-list li > div { flex: 1; min-width: 0; }
+.conversion-title-list span { display: block; overflow-wrap: anywhere; font-size: 0.85rem; color: var(--text-soft); }
+.conversion-title-list span.warning { color: var(--coral-soft); }
+.conversion-folders .hint { font-size: 0.85rem; }
 .import-info { position: relative; flex: 0 0 auto; }
 .import-info summary {
   display: grid;

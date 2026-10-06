@@ -176,6 +176,10 @@ secret values.
 | `POST /gog-imports` | Multipart `title` or `name`, one `.exe` and matching `.bin` parts as repeated `file` or `files`; 202 after staging. |
 | `GET /gog-imports/{id}` | Job snapshot and events. Optional `after` is a single unsigned cursor; use returned `next_event_seq` for the next poll. |
 | `DELETE /gog-imports/{id}` | Cancel active work; 409 after publication begins. |
+| `GET /conversion/status` | `enabled`, `experimental`, supported output formats with `qualified: false`, `max_files`; 7z entries list accepted `input_extensions`. |
+| `POST /conversion-imports` | Multipart `title`, optional `platform_slug` (default `wiiu`) and repeated `files` with relative paths; 202 with `id` and `status_url`. Starts inspection, compression, verification and publication without further approval. |
+| `GET /conversion-imports/{id}` | `state`, `phase`, `output_format`, byte `progress` when measurable, `result` or `error`, timestamps. |
+| `DELETE /conversion-imports/{id}` | Cancel and wait for the converter; 204, or 409 after publication begins. |
 | `GET /sources/romm/status` | Source/index status, safe URL and username, secret-presence flag. |
 | `PATCH /sources/romm/settings` | JSON `base_url`, `username`, optional `secret`, `auth_mode` of `token` or `basic`; HTTP needs `acknowledge_plaintext_http:true`. Omit secret to retain it. |
 | `DELETE /sources/romm/settings` | Clear source credentials, access-token cache and browse index. |
@@ -190,6 +194,10 @@ secret values.
 | `DELETE /sources/romm/imports/{id}` | Cancel active import. |
 
 Disabled RomM routes return 404. GOG import returns 503 if disabled or unconfigured.
+Conversion imports are [experimental](library.md#compress-on-import-experimental)
+and disabled unless `TEATRO_CONVERSION_ENABLED=true`. Their jobs are visible only
+to the creating admin; other admins receive 404. Admission returns 429 when four
+uploads are staged or a conversion is already running.
 An empty remote hash-conflict list may mean no hashes were supplied, not that
 checksum verification occurred. Remote declared-size mismatches fail; declared-hash
 mismatches remain warnings on an otherwise successful import.

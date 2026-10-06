@@ -38,7 +38,6 @@ struct ManagedDeleteEntry {
 pub async fn delete_rom(
     state: &AppState,
     rom_id: i64,
-    delete_files: bool,
     actor_user_id: Option<i64>,
 ) -> Result<DeleteRomOutcome, LibraryServiceError> {
     let rom = roms::find_by_id(state.db(), rom_id)
@@ -47,7 +46,6 @@ pub async fn delete_rom(
     let (deleted_files, missing_files) = delete_rom_records(
         state,
         std::slice::from_ref(&rom),
-        delete_files,
         actor_user_id,
         "roms.deleted",
         Some(rom.id),
@@ -57,7 +55,7 @@ pub async fn delete_rom(
 
     Ok(DeleteRomOutcome {
         rom,
-        delete_files,
+        delete_files: true,
         deleted_files,
         missing_files,
     })
@@ -114,7 +112,6 @@ async fn bulk_delete_roms(
     let (deleted_files, missing_files) = delete_rom_records(
         state,
         &roms_to_delete,
-        true,
         actor_user_id,
         "roms.bulk_deleted",
         None,
@@ -211,17 +208,16 @@ pub(super) async fn delete_unindexed_files(
 async fn delete_rom_records(
     state: &AppState,
     roms_to_delete: &[Rom],
-    delete_files: bool,
     actor_user_id: Option<i64>,
     audit_action: &'static str,
     audit_entity_id: Option<i64>,
     audit_scope: Option<Value>,
 ) -> Result<(Vec<String>, Vec<String>), LibraryServiceError> {
     let rom_ids: Vec<i64> = roms_to_delete.iter().map(|rom| rom.id).collect();
-    if rom_ids.is_empty() || !delete_files {
-        if !rom_ids.is_empty() || audit_scope.is_some() {
+    if rom_ids.is_empty() {
+        if audit_scope.is_some() {
             let metadata_json =
-                delete_audit_metadata(roms_to_delete, delete_files, &[], &[], audit_scope.as_ref());
+                delete_audit_metadata(roms_to_delete, &[], &[], audit_scope.as_ref());
             commit_delete_rows(
                 state,
                 &rom_ids,
@@ -249,7 +245,6 @@ async fn delete_rom_records(
         .collect::<Vec<_>>();
     let metadata_json = delete_audit_metadata(
         roms_to_delete,
-        true,
         &deleted_files,
         &preparation.missing_files,
         audit_scope.as_ref(),
@@ -680,7 +675,6 @@ async fn commit_delete_rows(
 
 fn delete_audit_metadata(
     roms_to_delete: &[Rom],
-    delete_files: bool,
     deleted_files: &[String],
     missing_files: &[String],
     scope: Option<&Value>,
@@ -697,7 +691,7 @@ fn delete_audit_metadata(
             serde_json::json!({
                 "rom_name": rom.name,
                 "platform_slug": rom.platform_slug,
-                "delete_files": delete_files,
+                "delete_files": true,
                 "deleted_files": deleted_files,
                 "missing_files": missing_files,
             })

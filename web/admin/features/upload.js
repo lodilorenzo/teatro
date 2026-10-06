@@ -1,13 +1,14 @@
 import { api } from '../api.js';
 import { isTextManifestFile, slugifyTitle } from '../dom.js';
 import {
-  addJob, findJob, resetUploadWorkflow, setUploadFiles, setUploadPlatformId,
+  addJob, canCompressChd, canCompressRvz, canCompressSevenZip, findJob, isSevenZipInput, resetUploadWorkflow, setUploadFiles, setUploadPlatformId,
   setUploadPreview, state, updateJob, updateJobProgress,
 } from '../state.js';
 import {
-  renderUploadFileList, renderUploadPlanPanel, uploadSelectionLabel,
+  renderUploadPlanPanel,
 } from '../views/upload-renderers.js';
 import { createUploadTransfer } from './upload-transfer.js';
+import { readDroppedFiles } from './conversion.js';
 import {
   listBackgroundTransfers, removeBackgroundTransfer, waitForBackgroundTransfer,
 } from './background-transfer.js';
@@ -114,8 +115,16 @@ export class UploadController {
       event.preventDefault();
       event.stopPropagation();
       dropZone.classList.remove('drag-over');
-      const files = [...(event.dataTransfer?.files || [])];
-      if (files.length) this.appendSelectedFiles(files);
+      if (state.conversionInspecting) return;
+      const platform = state.platforms.find((item) => String(item.id) === state.uploadPlatformId);
+      if (platform?.slug === 'wiiu' && state.conversionStatus?.enabled) {
+        void this.context.selectConversionFolders(readDroppedFiles(event.dataTransfer, state.conversionStatus.max_files), {
+          onFiles: (files) => this.appendSelectedFiles(files),
+        });
+      } else {
+        const files = [...(event.dataTransfer?.files || [])];
+        if (files.length) this.appendSelectedFiles(files);
+      }
     });
   }
 
@@ -126,6 +135,21 @@ export class UploadController {
   }
 
   bindPlanControls() {
+    this.context.app.querySelector('#upload-compress-chd')?.addEventListener('change', (event) => {
+      state.uploadCompressChd = event.currentTarget.checked && canCompressChd();
+      this.context.render();
+      this.context.app.querySelector('#upload-compress-chd')?.focus();
+    });
+    this.context.app.querySelector('#upload-compress-rvz')?.addEventListener('change', (event) => {
+      state.uploadCompressRvz = event.currentTarget.checked && canCompressRvz();
+      this.context.render();
+      this.context.app.querySelector('#upload-compress-rvz')?.focus();
+    });
+    this.context.app.querySelector('#upload-compress-seven-zip')?.addEventListener('change', (event) => {
+      state.uploadCompressSevenZip = event.currentTarget.checked && canCompressSevenZip();
+      this.context.render();
+      this.context.app.querySelector('#upload-compress-seven-zip')?.focus();
+    });
     this.context.app.querySelectorAll('[data-planned-title]').forEach((input) => {
       input.addEventListener('input', (event) => this.onPlannedTitleInput(event));
     });
@@ -147,13 +171,18 @@ export class UploadController {
   syncFinalizeButton() {
     const button = this.context.app.querySelector('[data-action="finalize-upload-plan"]');
     if (!button) return;
-    button.disabled = !state.uploadPlan
-      || Boolean(state.uploadPlan.errors?.length)
-      || !plannedTitlesAreValid();
+    button.disabled = state.uploadCompressRvz ? !canCompressRvz()
+      : state.uploadCompressChd ? !canCompressChd() || !plannedTitlesAreValid()
+        : !state.uploadPlan || Boolean(state.uploadPlan.errors?.length) || !plannedTitlesAreValid();
   }
 
   appendSelectedFiles(files) {
     if (!files.length) return;
+    if (state.conversionFiles.length || state.conversionInspecting) {
+      this.context.setError(new Error('Clear the decrypted folders before adding game files. Import files and folders as separate jobs.'));
+      this.context.render();
+      return;
+    }
     this.clearFileInput();
     this.updateSelectedFiles([...state.uploadSelectedFiles, ...files]);
   }
@@ -183,6 +212,7 @@ export class UploadController {
   }
 
   onPlatformChange = (event) => {
+    if (state.uploadPlatformId !== event.currentTarget.value) this.context.clearConversion?.();
     setUploadPlatformId(event.currentTarget.value);
     this.clearPlan();
     this.context.render();
@@ -191,19 +221,7 @@ export class UploadController {
 
   updateSelectedFiles(files) {
     setUploadFiles(files);
-    const app = this.context.app;
-    const label = app.querySelector('#upload-file-name');
-    const list = app.querySelector('#upload-file-list');
-    const clearButton = app.querySelector('[data-action="clear-upload-list"]');
-    if (label) label.textContent = uploadSelectionLabel(files);
-    if (list) {
-      list.innerHTML = renderUploadFileList(files);
-      this.bindQueueControls();
-    }
-    if (clearButton) clearButton.disabled = !files.length;
-    const panel = app.querySelector('#upload-plan-panel');
-    if (panel) panel.innerHTML = renderUploadPlanPanel();
-    this.syncFinalizeButton();
+    this.context.render();
   }
 
   onPreviewPlan = async (event) => {
@@ -222,6 +240,8 @@ export class UploadController {
         setUploadFiles(state.uploadSelectedFiles.filter((file) => !existing.has(file.name)));
       }
       setUploadPreview(false, plan);
+      if (!canCompressChd()) state.uploadCompressChd = false;
+      if (!canCompressSevenZip()) state.uploadCompressSevenZip = false;
       const otherWarningCount = (plan.warnings?.length || 0) - existingWarnings.length;
       if (existingFileNames.length) {
         const message = existingFileNames.length === 1
@@ -243,9 +263,8 @@ export class UploadController {
     this.context.render();
   };
 
-  async buildAndFetchPlan(form) {
+  async buildAndFetchPlan(form, files = state.uploadSelectedFiles) {
     const { platform } = this.formContext(form);
-    const files = state.uploadSelectedFiles;
     if (!platform) throw new Error('Select a platform before previewing.');
     if (!files.length) throw new Error('Select or drop one or more game files before previewing.');
 
@@ -257,10 +276,12 @@ export class UploadController {
       }
       requestFiles.push(requestFile);
     }
-    return api('/api/admin/uploads/preview', {
+    const plan = await api('/api/admin/uploads/preview', {
       method: 'POST',
       body: JSON.stringify({ platform_id: platform.id, files: requestFiles }),
     });
+    plan.chd_inputs_compatible = chdInputsCompatible(requestFiles);
+    return plan;
   }
 
   formContext(form) {
@@ -278,13 +299,53 @@ export class UploadController {
   onSubmit = async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const files = [...state.uploadSelectedFiles];
+    let files = [...state.uploadSelectedFiles];
     const { platform } = this.formContext(form);
     if (!platform || !files.length) {
       this.context.setError(new Error(platform
         ? 'Select or drop one or more game files before uploading.'
         : 'Select a platform before uploading.'));
       this.context.render();
+      return;
+    }
+    if (state.uploadCompressChd) {
+      if (!canCompressChd() || !plannedTitlesAreValid()) {
+        state.uploadCompressChd = false;
+        this.context.setError(new Error('Review CHD-compatible games with all discs and referenced tracks before compressing.'));
+        this.context.render();
+        return;
+      }
+      const byName = new Map(files.map((file) => [file.name, file]));
+      const selections = state.uploadPlan.roms.map((rom) => ({
+        title: rom.title,
+        platform: platform.slug,
+        files: rom.files.filter((file) => file.metadata?.source !== 'generated').map((file) => ({
+          file: byName.get(file.original_file_name), path: file.original_file_name,
+        })),
+      }));
+      if (selections.some((selection) => !selection.files.length || selection.files.some((entry) => !entry.file))
+        || selections.flatMap((selection) => selection.files).length !== files.length
+        || new Set(selections.flatMap((selection) => selection.files.map((entry) => entry.path))).size !== files.length) {
+        this.context.setError(new Error('The selected files changed. Review files again before compressing.'));
+        this.context.render();
+        return;
+      }
+      this.clearFileInput();
+      resetUploadWorkflow();
+      await Promise.all(selections.map((selection) => this.context.launchConversion(selection)));
+      return;
+    }
+    if (state.uploadCompressRvz) {
+      if (!canCompressRvz()) {
+        state.uploadCompressRvz = false;
+        this.context.setError(new Error('RVZ compression requires one GameCube ISO/GCM or Wii ISO/WBFS image.'));
+        this.context.render();
+        return;
+      }
+      const title = state.uploadPlan?.roms?.[0]?.title || files[0].name.replace(/\.(iso|gcm|wbfs)$/iu, '').replaceAll('_', ' ');
+      this.clearFileInput();
+      resetUploadWorkflow();
+      await this.context.launchConversion({ files: [{ file: files[0], path: files[0].name }], title, platform: platform.slug });
       return;
     }
     if (!state.uploadPlan) {
@@ -299,7 +360,49 @@ export class UploadController {
       return;
     }
 
-    const plan = state.uploadPlan;
+    let plan = state.uploadPlan;
+    if (state.uploadCompressSevenZip) {
+      if (!canCompressSevenZip()) {
+        state.uploadCompressSevenZip = false;
+        this.context.setError(new Error('Review uncompressed single-file ROMs for this non-disc platform before compressing.'));
+        this.context.render();
+        return;
+      }
+      const byName = new Map(files.map((file) => [file.name, file]));
+      const roms = plan.roms.filter((rom) => rom.files.length === 1 && isSevenZipInput(byName.get(rom.files[0].original_file_name)));
+      const selections = roms.map((rom) => {
+        const file = byName.get(rom.files[0].original_file_name);
+        return { title: rom.title, platform: platform.slug, files: [{ file, path: file.name }] };
+      });
+      const compressedNames = new Set(selections.map((selection) => selection.files[0].path));
+      if (compressedNames.size !== files.filter(isSevenZipInput).length || compressedNames.size !== selections.length) {
+        this.context.setError(new Error('The selected files changed. Review files again before compressing.'));
+        this.context.render();
+        return;
+      }
+      const remainingFiles = files.filter((file) => !compressedNames.has(file.name));
+      if (remainingFiles.length) {
+        // Plan IDs are positional; review the remaining batch before preserving its edited titles.
+        const remainingPlan = await this.buildAndFetchPlan(form, remainingFiles);
+        for (const rom of remainingPlan.roms) {
+          const original = plan.roms.find((candidate) => candidate.files.length === rom.files.length
+            && candidate.files.every((file) => rom.files.some((other) => other.original_file_name === file.original_file_name)));
+          if (original) applyPlannedTitle(remainingPlan, rom.plan_id, original.title);
+        }
+        if (remainingPlan.errors?.length || !plannedTitlesAreValid(remainingPlan)
+          || remainingPlan.roms.reduce((count, rom) => count + rom.files.filter((file) => file.metadata?.source !== 'generated').length, 0) !== remainingFiles.length) {
+          this.context.setError(new Error('The remaining upload plan changed. Review files again before launching.'));
+          this.context.render();
+          return;
+        }
+        plan = remainingPlan;
+      }
+      files = remainingFiles;
+      this.clearFileInput();
+      resetUploadWorkflow();
+      await Promise.all(selections.map((selection) => this.context.launchConversion(selection)));
+      if (!files.length) return;
+    }
     const totalBytes = files.reduce((total, file) => total + Number(file.size || 0), 0);
     const batchForm = this.buildBatchForm(form, platform, files, plan);
     const romCount = plan.roms.length;
@@ -498,6 +601,34 @@ export function applyPlannedTitle(plan, planId, title) {
     }
   }
   return rom;
+}
+
+// File review already reads descriptors. Reject known unsupported CUE layouts before launch.
+export function chdInputsCompatible(files) {
+  const byName = new Map(files.map((file) => [file.file_name, file]));
+  return files.every((file) => !/\.(iso|img)$/iu.test(file.file_name)
+      || file.file_size_bytes > 0 && (file.file_size_bytes % 2048 === 0 || file.file_size_bytes % 2352 === 0))
+    && files.filter((file) => /\.cue$/iu.test(file.file_name)).every((file) => {
+    const contents = file.manifest_contents;
+    if (typeof contents !== 'string') return false;
+    const lines = contents.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+    if (lines.some((line) => !/^(REM|FILE|TRACK|INDEX|PREGAP)\b/u.test(line))) return false;
+    const refs = lines.filter((line) => line.startsWith('FILE'));
+    const tracks = lines.filter((line) => line.startsWith('TRACK'));
+    const indices = lines.filter((line) => line.startsWith('INDEX'));
+    return refs.length > 0 && tracks.length > 0 && tracks.length <= 99 && indices.length === tracks.length
+      && !/AUDIO$/u.test(tracks[0])
+      && refs.every((line) => {
+        const match = /^FILE\s+"([^"/\\]+)"\s+BINARY$/u.exec(line);
+        const source = match && byName.get(match[1]);
+        return source && /\.(bin|img)$/iu.test(source.file_name) && source.file_size_bytes > 0 && source.file_size_bytes % 2352 === 0;
+      })
+      && tracks.every((line, index) => {
+        const match = /^TRACK\s+(\d+)\s+(AUDIO|MODE1\/2352|MODE2\/2352)$/u.exec(line);
+        return match && Number(match[1]) === index + 1;
+      })
+      && indices.every((line) => /^INDEX\s+01\s+\d{1,3}:[0-5]\d:(?:[0-6]\d|7[0-4])$/u.test(line));
+  });
 }
 
 export function plannedTitlesAreValid(plan = state.uploadPlan) {

@@ -4,8 +4,10 @@
 
 ## Run from source
 
-Use Rust 1.88 or newer, Cargo, a native C build toolchain/linker and local writable
-storage. Web assets are embedded at build time; no frontend build or Node install
+Use Rust 1.93 or newer, Cargo, a C/C++ build toolchain, libclang, zlib development
+headers and local writable storage. On Debian:
+`apt-get install build-essential pkg-config libclang-dev zlib1g-dev`. The linked
+conversion library needs libstdc++ and zlib at runtime. Web assets are embedded at build time; no frontend build or Node install
 is required to run Teatro. Node.js 22 is used for tests.
 
 From the repository root:
@@ -46,7 +48,7 @@ the explicit pin described in [GOG setup](integrations.md#gog-offline-installers
 
 ## Checks
 
-Install stable Rust with rustfmt/Clippy, Rust 1.88.0, Node.js 22, Bash, Python 3,
+Install stable Rust with rustfmt/Clippy, Rust 1.93.0, the native build packages above, Node.js 22, Bash, Python 3,
 ShellCheck and cargo-audit. Container checks also need Docker/Compose. No tests
 below need actual game content or integration credentials.
 
@@ -55,7 +57,7 @@ cargo +stable fmt --all -- --check
 cargo +stable clippy --locked --all-targets --all-features -- -D warnings
 cargo +stable test --locked --all-targets
 cargo +stable test --locked --doc
-cargo +1.88.0 test --locked --all-targets
+cargo +1.93.0 test --locked --all-targets
 find web -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 node --check scripts/test-browser-downloads.mjs
 (cd web/admin && npm test)
@@ -72,10 +74,12 @@ scripts/test-docker-image.sh teatro:check
 ```
 
 The [GitHub workflow](../.github/workflows/ci.yml) is the maintained CI command list.
-The audit wrapper permits `RUSTSEC-2023-0071` only after checking that RSA is absent
-from every enabled target/feature dependency graph. It fails if graph resolution
-fails or RSA becomes active. This is not a general vulnerability waiver or an
-audit of Docker's operating-system packages.
+The audit wrapper permits `RUSTSEC-2023-0071` only while SQLx/MySQL stays disabled
+and the pinned `rom-converto-lib` revision is the sole parent of `rsa` 0.9.10. Teatro
+uses that library only for key-free archive and disc-image packing; it supplies no
+keys and exposes no RSA operations. The wrapper fails if graph resolution fails or
+RSA gains another version or caller. This is not a general vulnerability waiver or
+an audit of Docker's operating-system packages.
 
 For an already prepared offline Rust audit, use `CARGO_NET_OFFLINE=true` and
 `scripts/audit-dependencies.sh --no-fetch`; dependencies, tools and the RustSec

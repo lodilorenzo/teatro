@@ -2,7 +2,61 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { UploadController, applyPlannedTitle, plannedTitlesAreValid } from './upload.js';
-import { state } from '../state.js';
+import { canCompressRvz, setUploadFiles, setUploadPlatformId, state } from '../state.js';
+import { renderUpload } from '../views/upload.js';
+
+test('RVZ eligibility follows the selected platform and clears on selection changes', () => {
+  const keys = ['platforms', 'uploadPlatformId', 'conversionStatus', 'uploadSelectedFiles', 'uploadPlan', 'uploadPreviewLoading', 'uploadCompressRvz'];
+  const before = Object.fromEntries(keys.map((key) => [key, state[key]]));
+  try {
+    state.platforms = [{ id: 1, slug: 'gc' }, { id: 2, slug: 'wii' }, { id: 3, slug: 'ps2' }];
+    state.conversionStatus = { enabled: true, formats: [{ platform_slug: 'gc', output: 'rvz' }, { platform_slug: 'wii', output: 'rvz' }] };
+    for (const [platform, name, eligible] of [
+      ['2', 'Disc.ISO', true], ['2', 'Disc.WBFS', true], ['2', 'Disc.gcm', false],
+      ['2', 'Disc.nkit.iso', false], ['2', 'Disc.rvz', false], ['2', 'Disc.wia', false],
+      ['2', 'Disc.gcz', false], ['2', 'Disc.wbf1', false], ['1', 'Disc.gcm', true],
+      ['1', 'Disc.wbfs', false], ['3', 'Disc.iso', false],
+    ]) {
+      setUploadPlatformId(platform); setUploadFiles([{ name, size: 10 }]);
+      assert.equal(canCompressRvz(), eligible, `${platform} ${name}`);
+      assert.equal(renderUpload().includes('id="upload-compress-rvz"'), eligible);
+      assert.equal(state.uploadCompressRvz, false);
+    }
+    setUploadPlatformId('2'); setUploadFiles([{ name: 'Disc.iso' }]);
+    state.uploadCompressRvz = true;
+    setUploadPlatformId('1'); assert.equal(state.uploadCompressRvz, false);
+    state.uploadCompressRvz = true;
+    setUploadFiles([{ name: 'Disc.iso' }, { name: 'Disc2.iso' }]);
+    assert.equal(state.uploadCompressRvz, false); assert.equal(canCompressRvz(), false);
+    setUploadPlatformId('2'); setUploadFiles([{ name: 'Disc.wbfs' }]);
+    state.conversionStatus.enabled = false; assert.equal(canCompressRvz(), false);
+    state.conversionStatus = { enabled: true, formats: [{ platform_slug: 'gc', output: 'rvz' }] };
+    assert.equal(canCompressRvz(), false, 'Server must advertise Wii support');
+  } finally { Object.assign(state, before); }
+});
+
+test('Wii RVZ submission preserves the selected platform and title, then clears preparation', async () => {
+  const keys = ['platforms', 'uploadPlatformId', 'conversionStatus', 'uploadSelectedFiles', 'uploadPlan', 'uploadPreviewLoading', 'uploadCompressRvz'];
+  const before = Object.fromEntries(keys.map((key) => [key, state[key]]));
+  try {
+    state.platforms = [{ id: 2, slug: 'wii', display_name: 'Wii' }];
+    state.conversionStatus = { enabled: true, formats: [{ platform_slug: 'wii', output: 'rvz' }] };
+    state.uploadPlatformId = '2';
+    const launched = [];
+    const controller = new UploadController({ app: { querySelector: () => null }, render: () => {}, setError: (error) => { throw error; }, launchConversion: async (selection) => launched.push(selection) });
+    for (const [name, editedTitle, expected] of [['Disc_title.WBFS', null, 'Disc title'], ['Disc.iso', 'Edited title', 'Edited title']]) {
+      setUploadFiles([{ name, size: 10 }]);
+      state.uploadPlan = editedTitle ? { roms: [{ title: editedTitle }] } : null;
+      state.uploadCompressRvz = true;
+      await controller.onSubmit({ preventDefault() {}, currentTarget: { elements: { platform_id: { value: '2' } } } });
+      assert.equal(launched.at(-1).platform, 'wii');
+      assert.equal(launched.at(-1).title, expected);
+      assert.equal(launched.at(-1).files[0].path, name);
+      assert.equal(state.uploadSelectedFiles.length, 0);
+      assert.equal(state.uploadCompressRvz, false);
+    }
+  } finally { Object.assign(state, before); }
+});
 
 test('planned title edits update title, slug, folder keys, and matching group labels', () => {
   const plan = {

@@ -207,6 +207,10 @@ async fn admin_can_upload_browse_download_get_stats_and_delete_roms() {
     assert_eq!(stats["total_roms"], 1);
     assert_eq!(stats["total_files"], 1);
     assert_eq!(stats["total_file_bytes"], 18);
+    assert_eq!(
+        stats["library_roots"][0]["root_path"],
+        state.config().default_library_root.display().to_string()
+    );
     assert!(
         stats["platforms"]
             .as_array()

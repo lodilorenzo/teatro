@@ -137,6 +137,7 @@ pub fn test_config(temp_dir: &TempDir) -> AppConfig {
             ..DownloadArchiveConfig::default()
         },
         gog_import: GogImportConfig::default(),
+        conversion_enabled: false,
         romm_source: RommSourceConfig::default(),
         log_format: LogFormat::Compact,
         lan_discovery: LanDiscoveryConfig::default(),

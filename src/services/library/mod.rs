@@ -20,7 +20,10 @@ pub(crate) use download::{
     PreparedDownloadArchive, prepare_download_archive,
 };
 pub use edit::{stats, update_rom};
-pub(crate) use normalization::{normalized_title, sanitize_upload_file_name, slugify};
+pub(crate) use ingest::build_ingest_plan;
+pub(crate) use normalization::{
+    archive_file_name, normalized_title, sanitize_upload_file_name, slugify,
+};
 pub(crate) use scan::{
     cleanup_sidecars, preview_sidecar_cleanup, scan_failure_summary, scan_library,
     scan_reason_codes,
@@ -29,6 +32,7 @@ pub(crate) use scan_jobs::{
     LibraryScanJobError, LibraryScanJobProgress, LibraryScanJobRegistry,
     LibraryScanJobRegistryError, LibraryScanJobReporter, LibraryScanJobSnapshot,
 };
+pub(crate) use types::PlanInputFile;
 pub use types::{
     BulkDeleteRomsOutcome, BulkDeleteScope, DeleteRomOutcome, ImportedScannedRom, IngestPlan,
     IngestPlanDependency, IngestPlanError, IngestPlanFile, IngestPlanGroup, IngestPlanRom,

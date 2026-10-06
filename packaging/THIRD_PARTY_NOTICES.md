@@ -26,15 +26,25 @@ notice files, its archive checksum and declared/selected terms in
 `DEPENDENCIES.tsv`, and a `SHA256SUMS` inventory. This is a conservative set of
 normal and build dependencies for the actual target, not a claim that all are
 linked into the binary. The build fails on an absent review, changed checksum,
-changed license or missing notice. The supplemental `crc-catalog` MIT notice and
-its exact upstream provenance are recorded in [licenses/README.md](licenses/README.md).
+changed license or missing notice. Supplemental notices for crates whose
+archives omit them, with their exact upstream provenance, are recorded in
+[licenses/README.md](licenses/README.md).
+
+Teatro links `rom-converto-lib` revision `0bc5e29ce2c4afc3ce30b64de73f7d673f4f9817`,
+copyright 2025–2026 DevYukine, under the MIT license, for the experimental
+conversion imports. Its notice is also retained as `ROM-CONVERTO-LICENSE`. Its
+dependencies compile C/C++ code into the executable, including zstd, lz4, zlib,
+bzip2, LZMA SDK, AWS-LC and UnRAR. Their notices are among the retained crate
+files. The UnRAR source is freeware rather than open source: it may be
+redistributed inside other software but must not be used to re-create RAR
+compression.
 
 Rust's standard-library copyright inventory and license texts are retained in
 `rust/rust-standard-library/`. The build also embeds Rust dependency metadata in
 the executable using pinned `cargo-auditable`. Its Cargo metadata can include
 disabled optional dependencies, including SQLx's MySQL/RSA dependencies. The
 separate `ACTIVE-DEPENDENCIES.txt` records Cargo tree's native normal/build graph;
-the build rejects RSA in that graph. Generated SBOMs retain the metadata superset
+the build rejects RSA in that graph unless `rom-converto-lib` is its only parent. Generated SBOMs retain the metadata superset
 rather than silently deleting entries. No Rust dependency license is replaced by
 Teatro's noncommercial restriction.
 
@@ -69,7 +79,7 @@ Runtime Library Exception. The build checks the extractor's dynamic dependencies
 rather than assuming that every requested static dependency linked statically.
 The extractor is a subprocess, not linked into Teatro.
 
-`unar`, `lsar`, `unrar` and `rar` are not bundled. Installers requiring a RAR helper
+The standalone `unar`, `lsar`, `unrar` and `rar` executables are not bundled. Installers requiring a RAR helper
 remain unsupported unless the operator separately provides a reviewed helper.
 The GOG importer remains disabled by default and is intended for installers the
 operator is entitled to use. Teatro and the extractor are not affiliated with GOG

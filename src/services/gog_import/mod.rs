@@ -516,7 +516,7 @@ async fn import_setup_inner(
     .await?;
     extraction_phase.complete();
 
-    let archive_name = archive_file_name(&title);
+    let archive_name = library::archive_file_name(&title, "zip");
     let archive_path = workspace.path().join(&archive_name);
     let output = output_directory.clone();
     let archive = archive_path.clone();
@@ -1003,47 +1003,6 @@ fn normalize_title(title: &str) -> Result<String, GogImportError> {
     Ok(title.to_string())
 }
 
-fn archive_file_name(title: &str) -> String {
-    let mut base = String::new();
-    let mut previous_separator = false;
-    for character in title.trim().chars() {
-        let unsafe_character = character.is_control()
-            || matches!(
-                character,
-                '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*'
-            );
-        let character = if unsafe_character { '_' } else { character };
-        let separator = character == '_' || character.is_whitespace();
-        if separator {
-            if !previous_separator {
-                base.push(' ');
-            }
-        } else {
-            base.push(character);
-        }
-        previous_separator = separator;
-        if base.len() >= 180 {
-            break;
-        }
-    }
-    let mut base = base
-        .trim_matches(|character| matches!(character, ' ' | '.'))
-        .to_string();
-    if base.is_empty() {
-        base = "Game".to_string();
-    }
-    let uppercase = base.to_ascii_uppercase();
-    let reserved = matches!(uppercase.as_str(), "CON" | "PRN" | "AUX" | "NUL")
-        || uppercase
-            .strip_prefix("COM")
-            .or_else(|| uppercase.strip_prefix("LPT"))
-            .is_some_and(|suffix| suffix.len() == 1 && matches!(suffix.as_bytes()[0], b'1'..=b'9'));
-    if reserved {
-        base.push_str(" Game");
-    }
-    format!("{base}.zip")
-}
-
 pub(crate) async fn cleanup_abandoned_workspaces(config: &AppConfig) -> Result<(), GogImportError> {
     let root = config.gog_import.staging_root(&config.data_dir);
     let metadata = match tokio::fs::symlink_metadata(&root).await {
@@ -1081,8 +1040,8 @@ mod tests {
 
     use super::{
         GogImportError, GogImportJobRegistry, GogImportPhase, GogImportPhaseLog,
-        GogImportWorkflowReporter, archive_file_name, copy_generated_archive_with_progress,
-        normalize_title, validate_setup_file_name,
+        GogImportWorkflowReporter, copy_generated_archive_with_progress, library, normalize_title,
+        validate_setup_file_name,
     };
 
     #[test]
@@ -1100,12 +1059,12 @@ mod tests {
 
     #[test]
     fn archive_names_preserve_the_title_without_windows_unsafe_characters() {
-        assert_eq!(archive_file_name("My Game"), "My Game.zip");
+        assert_eq!(library::archive_file_name("My Game", "zip"), "My Game.zip");
         assert_eq!(
-            archive_file_name("Game: Deluxe / Edition"),
+            library::archive_file_name("Game: Deluxe / Edition", "zip"),
             "Game Deluxe Edition.zip"
         );
-        assert_eq!(archive_file_name("CON"), "CON Game.zip");
+        assert_eq!(library::archive_file_name("CON", "zip"), "CON Game.zip");
     }
 
     struct DiskFullWriter;

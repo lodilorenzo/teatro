@@ -1,5 +1,6 @@
+import { coverPath } from '../../public/catalog.js';
 import {
-  attr, coverPath, csv, formatBytes, formatRole, html, metadataList, metadataText,
+  attr, csv, formatBytes, formatRole, html, metadataList, metadataText,
 } from '../dom.js';
 import { state } from '../state.js';
 import { renderIgdbSearch } from './metadata.js';
