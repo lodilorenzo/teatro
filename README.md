@@ -37,8 +37,8 @@ There is no stable binary release. The current version is defined in
 
 ## Quick start with Docker
 
-Use a 64-bit Linux Docker engine. The `0.21.3` image will support amd64 and arm64
-when published; there is no `latest` tag.
+Use a 64-bit Linux Docker engine. The signed `0.21.3` image supports amd64 and
+arm64; there is no `latest` tag.
 
 For a fresh installation:
 
