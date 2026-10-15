@@ -4,6 +4,30 @@ This changelog tracks user-visible functionality in public Teatro versions. It
 omits internal refactors and publication-process changes unless they affect
 installation or operation.
 
+## 0.22.1 - 2026-10-15
+
+Changes since 0.21.3. Version 0.22.0 was not published.
+
+### Player library
+
+- Browse without a title query and combine play mode, year, score, genre, developer, publisher, region, language, tag and total-size filters before pagination.
+- Sort by title, date added, release year, rating or total size in either direction. Applied controls stay in the URL.
+- Use two-ended year, score and size sliders with exact inputs and bounds derived from matching games. Untouched ranges include missing metadata; unknown values sort last.
+- Show scores and play modes in game cards and details. Reapply IGDB metadata to older games to populate play modes.
+
+### Collections and access
+
+- Create, edit and delete collections in Admin, selecting games across search pages. Each collection has a dedicated URL and appears on the player home.
+- Regular collections require login. Enabling LAN Party Zone explicitly allows anonymous browsing, covers and downloads for selected games only. This is not an IP/subnet restriction.
+- Membership is checked before listing, filtering, details, covers and download-ticket issuance. Disabling a zone stops new anonymous requests; existing single-use tickets keep their 60-second lifetime.
+- Deleting a collection keeps its games and files; changing its URL name breaks the old link.
+
+### Upgrade notes
+
+- Startup migrations add collection tables and remove stored age classifications from metadata and RomM provenance. Other metadata and game files are preserved. Age classifications are no longer imported or displayed.
+- Back up the complete stopped-instance data set before upgrading. Rollback requires the matching pre-upgrade backup.
+- Container publication remains beta with scoped security exceptions. The runtime UID/GID remains 10001:10001.
+
 ## 0.21.3 — 2026-10-06
 
 Changes from 0.19.9:

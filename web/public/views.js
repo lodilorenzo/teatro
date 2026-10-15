@@ -1,5 +1,8 @@
 import {
   coverPath,
+  catalogRange,
+  FILTER_KEYS,
+  SORT_FIELDS,
   formatCount,
   gameHash,
   platformAccent,
@@ -40,13 +43,13 @@ export function renderLogin({ error = '', origin = '' } = {}) {
     </div>`;
 }
 
-export function renderShell({ user, platforms, route, content }) {
+export function renderShell({ user, platforms, route, content, collection = null }) {
   const gameTotal = totalGames(platforms);
   const platformTotal = populatedPlatforms(platforms).length;
   const searchPlatform = route?.name === 'platform'
     ? platforms.find((platform) => Number(platform.id) === route.platformId)
     : null;
-  const searchLabel = searchPlatform
+  const searchLabel = collection ? `Search ${collection.name}` : searchPlatform
     ? `Search ${searchPlatform.display_name || searchPlatform.name}`
     : 'Search all games';
   const searchValue = ['platform', 'search'].includes(route?.name) ? route.query : '';
@@ -62,17 +65,18 @@ export function renderShell({ user, platforms, route, content }) {
             <input id="header-search" name="q" type="search" value="${attr(searchValue)}" maxlength="200" placeholder="${attr(searchLabel)}…" autocomplete="off" />
             <kbd>/</kbd>
           </form>
+          <a class="icon-button browse-link" href="#/search" aria-label="Browse &amp; filter" title="Browse &amp; filter">${icon('funnel')}</a>
           <div class="header-session">
             ${user?.role === 'admin' ? `<a class="admin-link" href="/admin" aria-label="Open Teatro admin" title="Admin">${icon('shield')}<span>Admin</span></a>` : ''}
-            <div class="user-chip" title="Signed in account">${icon('user')}<span><strong>${html(user?.username || 'Player')}</strong><small>${user?.role === 'admin' ? 'Admin' : 'Read-only'}</small></span></div>
-            <button class="icon-button" type="button" data-action="logout" aria-label="Sign out" title="Sign out">${icon('logout')}</button>
+            ${user ? `<div class="user-chip" title="Signed in account">${icon('user')}<span><strong>${html(user?.username || 'Player')}</strong><small>${user?.role === 'admin' ? 'Admin' : 'Read-only'}</small></span></div>
+            <button class="icon-button" type="button" data-action="logout" aria-label="Sign out" title="Sign out">${icon('logout')}</button>` : '<a class="text-link" href="/">Sign in</a>'}
           </div>
         </div>
       </header>
       <main id="main-content" class="site-main" tabindex="-1">${content}</main>
       <footer class="site-footer">
         <div><strong>Teatro</strong></div>
-        <div>${formatCount(gameTotal, 'game')} · ${formatCount(platformTotal, 'platform')}</div>
+        <div>${collection ? `${html(collection.name)} · ${formatCount(collection.rom_count, 'game')}` : `${formatCount(gameTotal, 'game')} · ${formatCount(platformTotal, 'platform')}`}</div>
       </footer>
       <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
     </div>`;
@@ -88,7 +92,7 @@ function formatUptime(seconds) {
   return `${minutes}m`;
 }
 
-export function renderPlatforms(platforms, recentGames = [], stats = null) {
+export function renderPlatforms(platforms, recentGames = [], stats = null, collections = null) {
   const visible = populatedPlatforms(platforms);
   const games = totalGames(visible);
   const host = typeof window !== 'undefined' ? window.location.host : '';
@@ -131,6 +135,7 @@ export function renderPlatforms(platforms, recentGames = [], stats = null) {
       </button>
     </section>
     ${renderRecentGames(recentGames)}
+    ${collections ? renderCollections(collections) : ''}
     <section class="platform-section" aria-labelledby="platform-heading">
       <div class="section-heading">
         <h2 id="platform-heading">Platforms</h2>
@@ -141,6 +146,16 @@ export function renderPlatforms(platforms, recentGames = [], stats = null) {
         'folder',
       )}
     </section>`;
+}
+
+export function renderCollections(collections) {
+  return `<section class="platform-section" aria-labelledby="collections-heading">
+    <div class="section-heading"><h2 id="collections-heading">Collections</h2></div>
+    ${collections.length ? `<div class="platform-grid">${collections.map((collection) => `<a class="platform-card" href="/${attr(collection.slug)}">
+      <span class="platform-card-emblem">${icon('folder')}</span>
+      <span class="platform-card-copy"><strong>${html(collection.name)}</strong><small>${formatCount(collection.rom_count, 'game')}${collection.lan_party_zone ? ' · LAN Party Zone' : ''}</small></span>
+      <span class="platform-card-arrow">${icon('arrow')}</span></a>`).join('')}</div>` : '<p>No collections yet. An administrator can create one in Admin.</p>'}
+  </section>`;
 }
 
 export function renderPlatformPage({ platform, page, route, view = 'grid' }) {
@@ -158,41 +173,73 @@ export function renderPlatformPage({ platform, page, route, view = 'grid' }) {
     <section class="games-section" aria-labelledby="games-heading">
       <div class="games-toolbar">
         <h2 id="games-heading"${query ? '' : ' class="visually-hidden"'}>${query ? `Results for &quot;${html(query)}&quot;` : 'Games'}</h2>
-        <div class="games-toolbar-controls">${renderViewToggle(view)}</div>
+        <div class="games-toolbar-controls">${renderSortControls(route)}${renderViewToggle(view)}</div>
       </div>
-      ${renderGameResults(page, (targetPage) => platformHash(platform, { query, page: targetPage }), {
-        emptyTitle: query ? 'No matching games' : 'No games found',
-        emptyMessage: query ? 'Try another title or clear this platform search.' : 'This platform does not have any visible games.',
+      ${renderCatalogControls(route, page.ranges)}
+      <p class="catalog-count" role="status">${formatCount(page.total, 'game')} found</p>
+      ${renderGameResults(page, (targetPage) => platformHash(platform, { query, filters: route.filters, page: targetPage }), {
+        emptyTitle: 'No matching games',
+        emptyMessage: 'Try another title or remove a filter. Games with missing metadata do not match that filter.',
       }, view, Boolean(query))}
     </section>`;
 }
 
-export function renderSearchPage({ page, route, view = 'grid' }) {
+export function renderSearchPage({ page, route, view = 'grid', collection = null }) {
   const query = route.query || '';
-  if (!query) {
-    return `
-      ${renderBreadcrumbs([['Library', '#/'], ['Search', '']])}
-      <section class="search-landing">
-        <span class="empty-icon">${icon('search')}</span>
-        <h1>Search games</h1>
-        <p>Search by title across all platforms.</p>
-      </section>`;
-  }
   return `
-    ${renderBreadcrumbs([['Library', '#/'], ['Search', '']])}
+    ${renderBreadcrumbs(collection ? [['Library', '/'], [collection.name, '#/']] : [['Library', '#/'], ['Search', '']])}
     <section class="search-results" aria-labelledby="search-heading">
       <div class="search-results-heading">
-        <div><h1 id="search-heading">Results for &quot;${html(query)}&quot;</h1><p>${formatCount(page.total, 'game')} across all platforms</p></div>
-        <div class="games-toolbar-controls">${renderViewToggle(view)}</div>
+        <div><h1 id="search-heading">${query ? `Results for &quot;${html(query)}&quot;` : collection ? html(collection.name) : 'Browse games'}</h1><p role="status">${formatCount(page.total, 'game')}${collection ? collection.lan_party_zone ? ' · LAN Party Zone · No sign-in required' : ' · Collection' : ' across all platforms'}</p></div>
+        <div class="games-toolbar-controls">${renderSortControls(route)}${renderViewToggle(view)}</div>
       </div>
-      ${renderGameResults(page, (targetPage) => searchHash(query, targetPage), {
+      ${renderCatalogControls(route, page.ranges)}
+      ${renderGameResults(page, (targetPage) => searchHash(query, targetPage, route.filters), {
         emptyTitle: 'No matching games',
-        emptyMessage: 'Check the spelling or try a shorter title.',
+        emptyMessage: 'Try another title or remove a filter. Games with missing metadata do not match that filter.',
       }, view, true)}
     </section>`;
 }
 
-export function renderGameDetail(game) {
+function renderCatalogControls(route, ranges = {}) {
+  const filters = route.filters || {};
+  const count = FILTER_KEYS.filter((key) => filters[key]).length;
+  const select = (name, label, options, value) => `<label class="catalog-field"><span>${label}</span><select name="${name}">${options.map(([key, text]) => `<option value="${attr(key)}"${key === value ? ' selected' : ''}>${html(text)}</option>`).join('')}</select></label>`;
+  const text = (name, label, placeholder = '') => `<label class="catalog-field"><span>${label}</span><input name="${name}" value="${attr(filters[name] || '')}" maxlength="200" placeholder="${attr(placeholder)}" /></label>`;
+  const range = (name, label) => {
+    const state = catalogRange(name, ranges[name], filters);
+    const step = '1';
+    const limit = name === 'year' ? 9999 : name === 'rating' ? 100 : Number.MAX_SAFE_INTEGER / state.divisor;
+    const disabled = !state.available || state.min === state.max;
+    return `<fieldset data-range="${name}" data-divisor="${state.divisor}" data-unit="${state.unit}" aria-labelledby="${name}-range-label">
+      <legend><span id="${name}-range-label">${label}${state.unit ? `, ${state.unit}` : ''}</span><button class="range-reset" type="button" data-range-reset aria-label="Reset ${label.toLowerCase()} filter">Reset</button></legend>
+      <div class="dual-range"><span class="range-rail" aria-hidden="true"><span></span></span>${['min', 'max'].map((bound, index) => `<input type="range" min="${state.min}" max="${state.max}" step="${step}" value="${state.values[index] || state.min}" aria-label="${bound === 'min' ? 'Minimum' : 'Maximum'} ${label.toLowerCase()}"${disabled ? ' disabled' : ''} />`).join('')}</div>
+      <div class="range-values">${['min', 'max'].map((bound, index) => `${index ? '<span aria-hidden="true">to</span>' : ''}<label class="catalog-field"><span>${bound === 'min' ? 'Minimum' : 'Maximum'}<span class="visually-hidden"> ${label.toLowerCase()}, exact value${state.unit ? `, ${state.unit}` : ''}</span></span><input name="${name}_${bound}" type="number" min="${name === 'year' ? 1 : 0}" max="${limit}" step="${step}" value="${attr(state.values[index])}" data-range-value data-active="${filters[`${name}_${bound}`] != null}" data-default="${attr(state.defaults[index])}"${!state.available && state.values[index] === '' ? ' disabled' : ''} /></label>`).join('')}</div>
+      ${!state.available ? '<small class="range-empty">No known values with other filters</small>' : ''}
+    </fieldset>`;
+  };
+  return `<form id="catalog-controls" class="catalog-controls">
+    <details class="catalog-filters"${count ? ' open' : ''}>
+      <summary>Filter games${count ? ` · ${count} active` : ''}</summary>
+      <div class="numeric-filters">
+        ${range('year', 'Release year')}
+        ${range('rating', 'Rating / 100')}
+        ${range('size', 'File size')}
+      </div>
+      <div class="filter-fields">
+        ${select('game_mode', 'Play mode', [['', 'Any play mode'], ['multiplayer', 'Multiplayer + co-op'], ['cooperative', 'Cooperative'], ['Single player', 'Single player'], ['Split screen', 'Split screen']], filters.game_mode || '')}
+        ${text('genre', 'Genre', 'e.g. Platform')}
+        ${text('developer', 'Developer')}
+        ${text('publisher', 'Publisher')}
+        ${text('region', 'Region', 'e.g. USA')}
+        ${text('language', 'Language', 'e.g. English')}
+        ${text('tag', 'Tag')}
+      </div>
+    </details>
+  </form>`;
+}
+
+export function renderGameDetail(game, collection = null) {
   const genres = metadataList(game, 'genres');
   const developers = metadataList(game, 'developers');
   const publishers = metadataList(game, 'publishers');
@@ -208,8 +255,8 @@ export function renderGameDetail(game) {
   const coverData = largeCover ? ` data-cover-path="${attr(largeCover)}"` : '';
   return `
     ${renderBreadcrumbs([
-      ['Library', '#/'],
-      [game.platform_display_name, platformHash(platform)],
+      [collection?.name || 'Library', '#/'],
+      [game.platform_display_name, collection ? '' : platformHash(platform)],
       [game.name, ''],
     ])}
     <article class="game-detail">
@@ -218,11 +265,11 @@ export function renderGameDetail(game) {
           <img class="detail-cover" src="${COVER_PLACEHOLDER}" alt="${attr(largeCover ? `Cover for ${game.name}` : `No cover available for ${game.name}`)}"${coverData} />
           <span class="cover-corner top-left"></span><span class="cover-corner bottom-right"></span>
         </div>
-        <a class="back-link" href="${attr(platformHash(platform))}">${icon('back')} Back to ${html(game.platform_display_name)}</a>
+        <a class="back-link" href="${collection ? '#/' : attr(platformHash(platform))}">${icon('back')} Back to ${html(collection?.name || game.platform_display_name)}</a>
       </aside>
       <div class="detail-content">
         <div class="detail-title-block">
-          <a class="platform-pill" href="${attr(platformHash(platform))}"><span class="detail-platform-icon" aria-hidden="true">${renderPlatformIcon(platform)}</span>${html(game.platform_display_name)}</a>
+          <a class="platform-pill" href="${collection ? '#/' : attr(platformHash(platform))}"><span class="detail-platform-icon" aria-hidden="true">${renderPlatformIcon(platform)}</span>${html(game.platform_display_name)}</a>
           <h1>${html(game.name)}</h1>
           <div class="detail-tags">
             ${releaseYear ? `<span>${html(releaseYear)}</span>` : ''}
@@ -316,8 +363,22 @@ function renderGameResults(page, hrefForPage, empty, view, showPlatformIcon = fa
 
 function renderViewToggle(view) {
   return `<div class="view-toggle" role="group" aria-label="Library view">
-    <button class="button subtle-button" type="button" data-library-view="list" aria-pressed="${view === 'list'}">List</button>
     <button class="button subtle-button" type="button" data-library-view="grid" aria-pressed="${view !== 'list'}">Grid</button>
+    <button class="button subtle-button" type="button" data-library-view="list" aria-pressed="${view === 'list'}">List</button>
+  </div>`;
+}
+
+function renderSortControls(route) {
+  const sort = route.filters?.sort || 'name';
+  const order = route.filters?.order || (sort === 'recent' ? 'desc' : 'asc');
+  const clear = { sort, order };
+  const href = route.name === 'platform' || route.platformId
+    ? platformHash({ id: route.platformId, slug: route.slug || '' }, { query: route.query, filters: clear })
+    : searchHash(route.query, 1, clear);
+  return `<div class="catalog-sort">
+    ${FILTER_KEYS.some((key) => route.filters?.[key]) ? `<a class="button subtle-button catalog-clear" href="${attr(href)}" aria-label="Clear filters" title="Clear filters">${icon('funnel-x')}</a>` : ''}
+    <label><span class="visually-hidden">Sort by</span><select name="sort">${SORT_FIELDS.map(([value, label]) => `<option value="${value}"${value === sort ? ' selected' : ''}>${html(label)}</option>`).join('')}</select></label>
+    <div class="sort-direction" role="group" aria-label="Sort direction">${[['asc', 'Ascending'], ['desc', 'Descending']].map(([value, label]) => `<button class="button subtle-button" type="button" data-sort-order="${value}" aria-pressed="${value === order}" aria-label="${label} order" title="${label === 'Ascending' ? 'Sort lowest to highest, A to Z' : 'Sort highest to lowest, Z to A'}">${icon(value === 'asc' ? 'arrow-down-narrow-wide' : 'arrow-down-wide-narrow', `sort-${value}`)}</button>`).join('')}</div>
   </div>`;
 }
 
@@ -326,6 +387,8 @@ function renderGameCard(game, recentIndex = null, showPlatformIcon = false) {
   const coverData = largeCover ? ` data-cover-path="${attr(largeCover)}"` : '';
   const year = metadataText(game, 'release_year');
   const genres = metadataList(game, 'genres');
+  const rating = gameRating(game);
+  const facts = metadataList(game, 'game_modes').join(' · ');
   const isRecent = Number.isInteger(recentIndex);
   const carouselAttributes = isRecent
     ? ` data-recent-game="${recentIndex}"${recentIndex >= 5 ? ' hidden' : ''}`
@@ -341,9 +404,10 @@ function renderGameCard(game, recentIndex = null, showPlatformIcon = false) {
       <span class="game-card-action">View game ${icon('arrow')}</span>
     </a>
     <div class="game-card-body">
-      <div class="game-card-kicker"><span>${html(game.platform_display_name)}</span>${year ? `<span>${html(year)}</span>` : ''}</div>
+      <div class="game-card-kicker"><span>${html(game.platform_display_name)}</span>${year || rating ? `<div class="game-card-stats">${year ? `<span>${html(year)}</span>` : ''}${rating ? `<span class="game-card-rating" title="Rating">${html(rating)}</span>` : ''}</div>` : ''}</div>
       <h3><a href="${attr(gameHash(game.id))}">${html(game.name)}</a></h3>
       <div class="game-card-meta"><span>${genres.length ? html(genres[0]) : 'Game'}</span><span>${formatBytes(game.fs_size_bytes || 0)}</span></div>
+      ${facts ? `<p class="game-card-facts">${html(facts)}</p>` : ''}
     </div>
   </article>`;
 }
@@ -362,10 +426,21 @@ function renderDetailFacts({ game, releaseYear, developers, publishers, genres }
     ['Developer', developers.join(', ')],
     ['Publisher', publishers.join(', ')],
     ['Genres', genres.join(', ')],
+    ['Rating', gameRating(game)],
+    ['Play modes', metadataList(game, 'game_modes').join(', ')],
+    ['Tags', metadataList(game, 'tags').join(', ')],
+    ['Languages', metadataList(game, 'languages').join(', ')],
     ['Regions', (game.regions || []).join(', ')],
   ].filter(([, value]) => value);
   if (!rows.length) return '';
   return `<dl class="detail-facts">${rows.map(([label, value]) => `<div><dt>${html(label)}</dt><dd>${html(value)}</dd></div>`).join('')}</dl>`;
+}
+
+function gameRating(game) {
+  const metadata = game?.metadatum || {};
+  const value = [metadata.total_rating, metadata.rating, metadata.aggregated_rating]
+    .find((value) => typeof value === 'number' && Number.isFinite(value));
+  return value === undefined ? '' : `${Math.round(value * 10) / 10} / 100`;
 }
 
 function renderPrimaryDownload(game, files, totalSize) {

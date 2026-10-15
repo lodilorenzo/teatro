@@ -3,6 +3,7 @@
 mod admin;
 mod assets;
 pub(crate) mod auth;
+mod collections;
 mod extractors;
 mod health;
 mod platform_icons;
@@ -119,6 +120,11 @@ async fn hash_user_password(state: &AppState, password: &str) -> Result<String, 
 
 pub fn router(state: AppState) -> Router {
     let admin_routes = Router::new()
+        .route("/collections", post(collections::create))
+        .route(
+            "/collections/{id}",
+            put(collections::update).delete(collections::delete),
+        )
         .route("/users", get(admin::list_users))
         .route("/users", post(admin::create_user))
         .route("/users/{id}", delete(admin::delete_user))
@@ -239,6 +245,7 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/users/me", get(users::me))
         .route("/stats", get(stats::public_stats))
+        .route("/collections", get(collections::list))
         .route("/platforms", get(romm::list_platforms))
         .route("/roms", get(romm::list_roms))
         .route("/roms/{id}", get(romm::rom_detail))
@@ -258,7 +265,31 @@ pub fn router(state: AppState) -> Router {
         .nest("/admin", admin_routes)
         .fallback(not_found)
         .layer(authenticated_layer.clone());
+    let collection_routes = Router::new()
+        .route("/collections/{slug}", get(collections::detail))
+        .route("/collections/{slug}/roms", get(collections::roms))
+        .route(
+            "/collections/{slug}/roms/{id}",
+            get(collections::rom_detail),
+        )
+        .route(
+            "/collections/{slug}/roms/{id}/archive-ticket",
+            post(collections::archive_ticket),
+        )
+        .route(
+            "/collections/{slug}/roms/{id}/files/{file_id}/download-ticket",
+            post(collections::file_ticket),
+        )
+        .route(
+            "/collections/{slug}/covers/{*path}",
+            get(collections::cover),
+        )
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            collections::require_access,
+        ));
     let api_routes = Router::new()
+        .merge(collection_routes)
         .route(
             "/setup",
             get(setup::status)
@@ -283,6 +314,8 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/", get(web::public_index))
         .route("/public/{*path}", get(web::public_asset))
+        .route("/{slug}", get(web::collection_index))
+        .route("/{slug}/", get(web::collection_index))
         .route("/healthz", get(health::healthz))
         .route("/setup", get(web::setup_index))
         .route("/setup/", get(web::setup_index))

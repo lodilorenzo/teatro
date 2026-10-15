@@ -1,9 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 
 use crate::domain::rom::{
-    PaginatedRoms, Rom, RomFile, RomFileDependency, RomFileGroup, RomListParams,
+    PaginatedRoms, Rom, RomFile, RomFileDependency, RomFileGroup, RomFilters, RomListParams,
 };
 
 use super::rows::{
@@ -20,12 +20,14 @@ pub async fn list(
         r#"
         SELECT COUNT(*)
         FROM roms r
+        LEFT JOIN rom_metadata m ON m.rom_id = r.id
         WHERE 1 = 1
         "#,
     );
     push_platform_filter(&mut count_builder, platform_ids);
     push_search_filter(&mut count_builder, params.search.as_deref());
     push_missing_cover_filter(&mut count_builder, params.missing_cover);
+    push_metadata_filters(&mut count_builder, &params.filters);
     let total = count_builder
         .build_query_scalar::<i64>()
         .fetch_one(db)
@@ -34,20 +36,31 @@ pub async fn list(
     // Select the bounded ROM page before looking up each ROM's preferred file.
     // The previous ranked_files window processed every file in the library for
     // every page request, even when the response contained only a few ROMs.
-    let ordering = if params.newest_first {
-        "r.created_at DESC, r.id DESC"
+    let sort_expression = match params.sort.as_str() {
+        "recent" => "r.created_at".to_string(),
+        "year" => numeric_metadata_sql("release_year"),
+        "rating" => rating_sql(),
+        "size" => size_sql().to_string(),
+        _ => "r.name COLLATE NOCASE".to_string(),
+    };
+    let direction = if params.descending { "DESC" } else { "ASC" };
+    let ordering = if params.sort == "name" || params.sort == "recent" {
+        format!("{sort_expression} {direction}, r.id {direction}")
     } else {
-        "r.name COLLATE NOCASE, r.id"
+        format!(
+            "({sort_expression}) IS NULL, {sort_expression} {direction}, r.name COLLATE NOCASE, r.id {direction}"
+        )
     };
     let mut builder = QueryBuilder::<Sqlite>::new(
-        "WITH selected_roms(id) AS (SELECT r.id FROM roms r WHERE 1 = 1",
+        "WITH selected_roms(id) AS (SELECT r.id FROM roms r LEFT JOIN rom_metadata m ON m.rom_id = r.id WHERE 1 = 1",
     );
     push_platform_filter(&mut builder, platform_ids);
     push_search_filter(&mut builder, params.search.as_deref());
     push_missing_cover_filter(&mut builder, params.missing_cover);
+    push_metadata_filters(&mut builder, &params.filters);
     builder
         .push(" ORDER BY ")
-        .push(ordering)
+        .push(&ordering)
         .push(" LIMIT ")
         .push_bind(params.limit)
         .push(" OFFSET ")
@@ -56,7 +69,7 @@ pub async fn list(
         .push(rom_select_sql())
         .push(" WHERE r.id IN (SELECT id FROM selected_roms)")
         .push(" ORDER BY ")
-        .push(ordering);
+        .push(&ordering);
 
     let rows = builder.build_query_as::<RomRow>().fetch_all(db).await?;
     let mut items: Vec<Rom> = rows
@@ -76,6 +89,56 @@ pub async fn list(
         limit: params.limit,
         offset: params.offset,
     })
+}
+
+pub(crate) async fn range_bounds(
+    db: &SqlitePool,
+    params: &RomListParams,
+    platform_ids: &[i64],
+) -> Result<BTreeMap<&'static str, Option<[f64; 2]>>, sqlx::Error> {
+    let mut ranges = BTreeMap::new();
+    for (field, expression, minimum, maximum) in [
+        ("year", numeric_metadata_sql("release_year"), 1.0, 9999.0),
+        ("rating", rating_sql(), 0.0, 100.0),
+        ("size", size_sql().to_string(), 0.0, f64::MAX),
+    ] {
+        let mut filters = params.filters.clone();
+        match field {
+            "year" => {
+                filters.year_min = None;
+                filters.year_max = None;
+            }
+            "rating" => {
+                filters.rating_min = None;
+                filters.rating_max = None;
+            }
+            _ => {
+                filters.size_min = None;
+                filters.size_max = None;
+            }
+        }
+        let mut builder = QueryBuilder::<Sqlite>::new(format!(
+            "SELECT MIN(CAST(value AS REAL)), MAX(CAST(value AS REAL)) FROM (SELECT {expression} AS value FROM roms r LEFT JOIN rom_metadata m ON m.rom_id = r.id WHERE 1 = 1"
+        ));
+        push_platform_filter(&mut builder, platform_ids);
+        push_search_filter(&mut builder, params.search.as_deref());
+        push_missing_cover_filter(&mut builder, params.missing_cover);
+        push_metadata_filters(&mut builder, &filters);
+        builder
+            .push(") WHERE value >= ")
+            .push_bind(minimum)
+            .push(" AND value <= ")
+            .push_bind(maximum);
+        if field == "year" {
+            builder.push(" AND value = CAST(value AS INTEGER)");
+        }
+        let (min, max) = builder
+            .build_query_as::<(Option<f64>, Option<f64>)>()
+            .fetch_one(db)
+            .await?;
+        ranges.insert(field, min.zip(max).map(|(min, max)| [min, max]));
+    }
+    Ok(ranges)
 }
 
 pub async fn find_by_id(db: &SqlitePool, id: i64) -> Result<Option<Rom>, sqlx::Error> {
@@ -581,6 +644,107 @@ pub(crate) async fn slug_exists_excluding(
     .await?;
 
     Ok(exists != 0)
+}
+
+fn numeric_metadata_sql(field: &str) -> String {
+    format!(
+        "CASE WHEN json_type(m.metadata_json, '$.{field}') IN ('integer', 'real') THEN json_extract(m.metadata_json, '$.{field}') END"
+    )
+}
+
+fn rating_sql() -> String {
+    format!(
+        "COALESCE({}, {}, {})",
+        numeric_metadata_sql("total_rating"),
+        numeric_metadata_sql("rating"),
+        numeric_metadata_sql("aggregated_rating")
+    )
+}
+
+fn size_sql() -> &'static str {
+    "(SELECT SUM(sf.file_size_bytes) FROM rom_files sf WHERE sf.rom_id = r.id)"
+}
+
+fn metadata_array_sql(field: &str) -> String {
+    if field == "regions" {
+        return "r.regions_json".to_string();
+    }
+    format!(
+        "CASE WHEN json_type(m.metadata_json, '$.{field}') = 'array' AND json_extract(m.metadata_json, '$.{field}') != '[]' THEN json_extract(m.metadata_json, '$.{field}') WHEN json_type(m.metadata_json, '$.romm.{field}') = 'array' THEN json_extract(m.metadata_json, '$.romm.{field}') ELSE '[]' END"
+    )
+}
+
+fn push_metadata_filters(builder: &mut QueryBuilder<'_, Sqlite>, filters: &RomFilters) {
+    if let Some(id) = filters.collection_id {
+        builder.push(" AND EXISTS (SELECT 1 FROM collection_roms cr WHERE cr.rom_id = r.id AND cr.collection_id = ")
+            .push_bind(id).push(")");
+    }
+    let year = numeric_metadata_sql("release_year");
+    let rating = rating_sql();
+    for (expression, min, max) in [
+        (year.as_str(), filters.year_min, filters.year_max),
+        (size_sql(), filters.size_min, filters.size_max),
+    ] {
+        if let Some(min) = min {
+            builder
+                .push(" AND ")
+                .push(expression)
+                .push(" >= ")
+                .push_bind(min);
+        }
+        if let Some(max) = max {
+            builder
+                .push(" AND ")
+                .push(expression)
+                .push(" <= ")
+                .push_bind(max);
+        }
+    }
+    if let Some(min) = filters.rating_min {
+        builder
+            .push(" AND ")
+            .push(&rating)
+            .push(" >= ")
+            .push_bind(min);
+    }
+    if let Some(max) = filters.rating_max {
+        builder
+            .push(" AND ")
+            .push(&rating)
+            .push(" <= ")
+            .push_bind(max);
+    }
+    for (field, value) in &filters.metadata {
+        builder
+            .push(" AND EXISTS (SELECT 1 FROM json_each(")
+            .push(metadata_array_sql(field))
+            .push(") WHERE type = 'text' AND TRIM(value) = ")
+            .push_bind(value.clone())
+            .push(" COLLATE NOCASE)");
+    }
+    if let Some(mode) = &filters.game_mode {
+        builder
+            .push(" AND EXISTS (SELECT 1 FROM (SELECT value, type FROM json_each(")
+            .push(metadata_array_sql("game_modes"))
+            .push(") UNION ALL SELECT value, type FROM json_each(")
+            .push(metadata_array_sql("tags"))
+            .push(")) WHERE type = 'text' AND ");
+        match mode.to_lowercase().as_str() {
+            "coop" | "co-op" | "cooperative" => {
+                builder.push("LOWER(REPLACE(REPLACE(TRIM(value), '-', ''), ' ', '')) IN ('coop', 'cooperative')");
+            }
+            "multiplayer" => {
+                builder.push("LOWER(REPLACE(REPLACE(TRIM(value), '-', ''), ' ', '')) IN ('multiplayer', 'coop', 'cooperative', 'splitscreen', 'massivelymultiplayeronline(mmo)', 'mmo')");
+            }
+            _ => {
+                builder
+                    .push("TRIM(value) = ")
+                    .push_bind(mode.clone())
+                    .push(" COLLATE NOCASE");
+            }
+        }
+        builder.push(")");
+    }
 }
 
 fn push_search_filter(builder: &mut QueryBuilder<'_, Sqlite>, search: Option<&str>) {

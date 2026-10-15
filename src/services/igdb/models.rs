@@ -141,6 +141,8 @@ pub struct IgdbGameCandidate {
     #[serde(default)]
     pub total_rating: Option<f64>,
     #[serde(default)]
+    pub game_modes: Vec<String>,
+    #[serde(default)]
     pub genres: Vec<String>,
     #[serde(default)]
     pub developers: Vec<String>,
@@ -218,6 +220,8 @@ pub(super) struct IgdbGame {
     #[serde(default)]
     total_rating: Option<f64>,
     #[serde(default)]
+    game_modes: Vec<IgdbNamedEntity>,
+    #[serde(default)]
     genres: Vec<IgdbNamedEntity>,
     #[serde(default)]
     involved_companies: Vec<IgdbInvolvedCompany>,
@@ -288,6 +292,7 @@ impl IgdbGame {
             rating: self.rating,
             aggregated_rating: self.aggregated_rating,
             total_rating: self.total_rating,
+            game_modes: entity_names(self.game_modes),
             genres,
             developers,
             publishers,
@@ -360,6 +365,7 @@ impl IgdbGameCandidate {
 
         self.summary = trimmed_optional(self.summary.as_deref());
         self.storyline = trimmed_optional(self.storyline.as_deref());
+        self.game_modes = normalize_string_vec(self.game_modes);
         self.genres = normalize_string_vec(self.genres);
         self.developers = normalize_string_vec(self.developers);
         self.publishers = normalize_string_vec(self.publishers);
@@ -396,6 +402,7 @@ impl IgdbGameCandidate {
             "rating": self.rating,
             "aggregated_rating": self.aggregated_rating,
             "total_rating": self.total_rating,
+            "game_modes": self.game_modes,
             "genres": self.genres,
             "developers": self.developers,
             "publishers": self.publishers,

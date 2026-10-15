@@ -745,7 +745,6 @@ fn parse_rom_metadata(value: &Value, remote_rom_id: i64) -> RemoteRomMetadata {
         "collections": metadata_text_list(value, "collections"),
         "companies": metadata_text_list(value, "companies"),
         "game_modes": metadata_text_list(value, "game_modes"),
-        "age_ratings": metadata_text_list(value, "age_ratings"),
         "player_count": metadata_text(value, "player_count"),
         "alternative_names": metadata_text_list(value, "alternative_names"),
         "revision": metadata_text(value, "revision"),
@@ -768,6 +767,8 @@ fn parse_rom_metadata(value: &Value, remote_rom_id: i64) -> RemoteRomMetadata {
         "publishers": publishers,
         "regions": regions,
         "languages": languages,
+        "game_modes": metadata_text_list(value, "game_modes"),
+        "tags": metadata_text_list(value, "tags"),
         "romm": provenance,
     });
 
@@ -1030,6 +1031,13 @@ mod tests {
             metadata.value["genres"],
             serde_json::json!(["Adventure", "RPG"])
         );
+        assert_eq!(
+            metadata.value["game_modes"],
+            serde_json::json!(["Single player"])
+        );
+        assert!(metadata.value.get("age_ratings").is_none());
+        assert!(metadata.value["romm"].get("age_ratings").is_none());
+        assert_eq!(metadata.value["tags"], metadata.value["romm"]["tags"]);
         assert_eq!(metadata.value["romm"]["provider_ids"]["igdb_id"], 123);
         assert_eq!(
             metadata.value["romm"]["companies"],

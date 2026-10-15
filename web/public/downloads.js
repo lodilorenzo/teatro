@@ -1,23 +1,23 @@
 import { apiRequest } from './api.js';
 
-export async function downloadFile({ romId, file, authorization, notify = () => {} }) {
+export async function downloadFile({ romId, file, authorization, apiBase = '/api', notify = () => {} }) {
   notify(`Preparing ${file.file_name}…`, 'progress');
   const response = await apiRequest(
-    `/api/roms/${encodeURIComponent(romId)}/files/${encodeURIComponent(file.id)}/download-ticket`,
+    `${apiBase}/roms/${encodeURIComponent(romId)}/files/${encodeURIComponent(file.id)}/download-ticket`,
     authorization,
-    { method: 'POST' },
+    { method: 'POST', allowAnonymous: apiBase !== '/api' },
   );
   submitDownloadTicket(response.ticket, 'file');
   notify(`${file.file_name} download started in your browser.`, 'success');
   return { mode: 'browser' };
 }
 
-export async function downloadArchive({ romId, authorization, notify = () => {} }) {
+export async function downloadArchive({ romId, authorization, apiBase = '/api', notify = () => {} }) {
   notify('Preparing package ZIP on Teatro…', 'progress');
   const response = await apiRequest(
-    `/api/roms/${encodeURIComponent(romId)}/archive-ticket`,
+    `${apiBase}/roms/${encodeURIComponent(romId)}/archive-ticket`,
     authorization,
-    { method: 'POST' },
+    { method: 'POST', allowAnonymous: apiBase !== '/api' },
   );
   submitDownloadTicket(response.ticket);
   notify('Package download started in your browser.', 'success');

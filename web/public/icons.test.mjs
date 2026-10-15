@@ -8,7 +8,7 @@ test('shared Lucide renderer emits local decorative SVGs and escapes classes', (
   assert.match(markup, /^<svg class="icon nav&lt;icon" aria-hidden="true"/);
   assert.match(markup, /<rect width="7" height="9" x="3" y="3" rx="1"\/>/);
   assert.doesNotMatch(markup, /script|href=/);
-  for (const name of ['external-link', 'folder-search', 'info', 'refresh-cw', 'logout']) {
+  for (const name of ['external-link', 'folder-search', 'info', 'refresh-cw', 'logout', 'funnel']) {
     assert.notEqual(icon(name), icon('unknown'), `${name} must not use the fallback`);
   }
 });

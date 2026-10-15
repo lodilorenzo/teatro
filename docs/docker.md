@@ -140,7 +140,9 @@ The separate library must join every backup and restore.
 ## Accounts and administration
 
 Use separate `readonly` accounts for players and client applications. Administrators can
-change configuration and delete managed files. The last administrator cannot be
+change configuration and delete managed files. Regular collections require login;
+[LAN Party Zones](library.md#collections-and-lan-party-zones) explicitly allow anonymous
+access to selected games. They do not enforce an IP/subnet restriction. The last administrator cannot be
 deleted or demoted. CLI commands prompt for passwords without echoing them:
 
 ```bash

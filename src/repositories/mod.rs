@@ -6,6 +6,7 @@
 pub mod api_tokens;
 pub(crate) mod audit;
 pub(crate) mod browser_sessions;
+pub(crate) mod collections;
 pub mod file_operations;
 pub(crate) mod igdb_settings;
 pub mod integrity;

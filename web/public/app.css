@@ -83,7 +83,7 @@ body::before {
 
 ::selection { color: var(--accent-ink); background: var(--accent); }
 a { color: inherit; text-decoration: none; }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { color: inherit; }
 img { display: block; max-width: 100%; }
 h1, h2, h3, p { margin-top: 0; }
@@ -263,7 +263,7 @@ input:focus-visible { outline-offset: 0; }
 .site-header { position: sticky; top: 0; z-index: 30; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 96%, transparent); backdrop-filter: blur(8px); }
 .header-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: clamp(1rem, 2.5vw, 2.4rem);
   width: min(100% - 2.5rem, 1440px);
@@ -384,6 +384,60 @@ input:focus-visible { outline-offset: 0; }
 .home-surprise .icon { width: 1.35rem; height: 1.35rem; }
 .home-surprise strong { font-family: var(--font-body); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
 
+/* Catalog filters */
+.catalog-controls { margin-bottom: 1.5rem; color: var(--text-soft); }
+.catalog-sort { display: flex; align-items: center; gap: 0.2rem; }
+.catalog-sort label { display: block; min-width: 0; }
+.catalog-sort select { width: 7rem; min-width: 0; border: 1px solid var(--line-bright); border-radius: var(--radius-m); background: var(--backdrop); color: var(--text); color-scheme: dark; cursor: pointer; }
+.sort-direction { display: flex; gap: 0.2rem; }
+.sort-direction .button { width: 2.35rem; }
+.sort-direction .icon, .catalog-clear .icon { width: 1.1rem; height: 1.1rem; }
+.catalog-controls label { display: grid; gap: 0.2rem; min-width: 0; font-size: 0.85rem; }
+.catalog-controls input, .catalog-controls select {
+  width: 100%; min-width: 0; min-height: 2.25rem; border: 1px solid var(--line-bright);
+  border-radius: var(--radius-s); padding: 0.5rem 0.65rem;
+  background: var(--backdrop); color: var(--text); color-scheme: dark; caret-color: var(--accent);
+}
+.catalog-controls input::placeholder { color: var(--text-soft); opacity: 1; }
+.catalog-controls .catalog-field { position: relative; display: block; }
+.catalog-field > span { position: absolute; top: 0.3rem; left: 0.65rem; z-index: 1; font-size: 0.75rem; line-height: 1.2; pointer-events: none; }
+.catalog-controls .catalog-field input, .catalog-controls .catalog-field select { min-height: 3rem; padding: 1.25rem 0.65rem 0.3rem; font-size: 0.85rem; }
+.catalog-field:focus-within > span { color: var(--accent-bright); }
+.catalog-controls input:invalid { border-color: var(--coral); }
+.catalog-controls summary { width: fit-content; min-height: 2.75rem; padding: 0.5rem 0; cursor: pointer; font-weight: 600; color: var(--text); }
+.catalog-controls summary:hover { color: var(--accent-bright); }
+.numeric-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; padding: 0.25rem 0 1rem; }
+.numeric-filters fieldset { min-width: 0; margin: 0; border: 0; padding: 0; }
+.numeric-filters legend { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0; font-size: 0.85rem; }
+.range-reset { min-height: 1.5rem; border: 0; padding: 0 0.25rem; color: var(--text-soft); background: none; font-size: 0.75rem; cursor: pointer; }
+.range-reset:hover { color: var(--accent-bright); }
+.dual-range { position: relative; height: 2.75rem; }
+.range-rail { position: absolute; top: calc(50% - 2px); right: 12px; left: 12px; height: 4px; border-radius: 2px; background: var(--line-bright); }
+.range-rail > span { position: absolute; inset: 0; left: var(--range-low, 0%); right: calc(100% - var(--range-high, 100%)); border-radius: inherit; background: var(--accent); }
+.catalog-controls .dual-range input { position: absolute; inset: 0; width: 100%; height: 2.75rem; min-height: 0; margin: 0; border: 0; border-radius: 0; padding: 0; appearance: none; background: transparent; pointer-events: none; }
+.dual-range input::-webkit-slider-thumb { width: 24px; height: 24px; border: 2px solid var(--text); border-radius: 50%; appearance: none; background: var(--accent); pointer-events: auto; cursor: grab; }
+.dual-range input::-moz-range-thumb { width: 20px; height: 20px; border: 2px solid var(--text); border-radius: 50%; background: var(--accent); pointer-events: auto; cursor: grab; }
+.dual-range input::-moz-range-track { background: transparent; }
+.dual-range input:focus-visible { outline: none; }
+.dual-range input:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 3px; }
+.dual-range input:focus-visible::-moz-range-thumb { outline: 2px solid var(--accent); outline-offset: 3px; }
+.dual-range input:disabled::-webkit-slider-thumb { opacity: 0.45; cursor: default; }
+.dual-range input:disabled::-moz-range-thumb { opacity: 0.45; cursor: default; }
+.range-values { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 0.5rem; }
+.catalog-controls .range-values input { font-variant-numeric: tabular-nums; }
+.range-values > span, .range-empty { color: var(--text-soft); font-size: 0.75rem; }
+.range-empty { display: block; margin-top: 0.25rem; }
+.filter-fields { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.75rem; }
+@media (max-width: 1120px) {
+  .filter-fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.catalog-count { color: var(--text-soft); font-variant-numeric: tabular-nums; }
+.game-card-facts { margin: 0.45rem 0 0; color: var(--text-soft); font-size: 0.8rem; overflow-wrap: anywhere; }
+@media (max-width: 580px) {
+  .numeric-filters { grid-template-columns: 1fr; gap: 0.75rem; }
+  .filter-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* Platforms */
 .recent-games-section, .platform-section, .games-section, .search-results { padding-top: 3rem; }
 .recent-games-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(0.7rem, 1.5vw, 1.2rem); }
@@ -484,10 +538,16 @@ input:focus-visible { outline-offset: 0; }
 .platform-hero > div:nth-child(2) { z-index: 1; }
 .platform-hero h1 { margin-bottom: 0.3rem; font-size: clamp(1.75rem, 4vw, 2.6rem); line-height: 1.15; }
 .platform-hero p:last-child { margin: 0; color: var(--text-soft); }
-.games-toolbar-controls { display: flex; align-items: center; justify-content: flex-end; gap: 0.55rem; flex: 1; }
+.games-toolbar-controls { display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; flex: 1; }
 .view-toggle { display: flex; flex: 0 0 auto; gap: 0.2rem; }
-.view-toggle .button { min-height: 2.35rem; padding: 0.45rem 0.65rem; font-size: 0.72rem; }
-.view-toggle .button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--backdrop); }
+.view-toggle .button, .catalog-sort select, .catalog-sort .button { height: 2.35rem; min-height: 2.35rem; padding: 0.45rem 0.65rem; font-size: 0.72rem; }
+.catalog-sort .sort-direction .button, .catalog-sort .catalog-clear { width: 2.35rem; padding: 0; }
+@media (max-width: 370px) {
+  .games-toolbar-controls { gap: 0.2rem; }
+  .view-toggle .button { padding-inline: 0.4rem; }
+  .catalog-sort .sort-direction .button, .catalog-sort .catalog-clear { width: 2rem; }
+}
+.view-toggle .button[aria-pressed="true"], .sort-direction .button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--backdrop); }
 .search-results-heading { align-items: center; }
 .search-results-heading h1 { margin-bottom: 0.4rem; font-size: clamp(1.5rem, 4vw, 2.5rem); line-height: 1.2; overflow-wrap: anywhere; }
 .search-results-heading > div > p:last-child { margin: 0; color: var(--muted); }
@@ -531,7 +591,10 @@ input:focus-visible { outline-offset: 0; }
 .game-cover-link:hover .game-card-action { opacity: 1; transform: translateY(0); }
 .game-card-body { padding: 0.7rem 0.25rem 0.2rem; }
 .game-card-kicker, .game-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; color: var(--muted); font-family: var(--font-mono); font-size: 0.57rem; letter-spacing: 0.04em; text-transform: uppercase; }
-.game-card-kicker span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+.game-card-kicker { align-items: flex-start; }
+.game-card-kicker > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+.game-card-stats { display: grid; justify-items: end; gap: 0.2rem; flex-shrink: 0; }
+.game-card-rating { color: var(--text-soft); font-family: var(--font-body); font-size: 0.8rem; letter-spacing: normal; text-transform: none; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .game-card h3 { margin: 0.42rem 0 0.65rem; font-family: var(--font-display); font-size: 1rem; line-height: 1.2; letter-spacing: 0.02em; }
 .game-card h3 a:hover { color: var(--accent); }
 .game-card-meta { text-transform: none; }
@@ -602,7 +665,7 @@ input:focus-visible { outline-offset: 0; }
 
 /* Responsive layout */
 @media (max-width: 1120px) {
-  .header-inner { grid-template-columns: auto minmax(0, 1fr) auto; gap: 1rem; }
+  .header-inner { gap: 1rem; }
   .brand-name small, .user-chip small { display: none; }
   .home-hero { grid-template-columns: 1fr 1fr; }
   .home-hero .home-surprise { grid-column: 1 / -1; min-height: 3.4rem; grid-auto-flow: column; }
@@ -611,7 +674,7 @@ input:focus-visible { outline-offset: 0; }
 }
 
 @media (max-width: 820px) {
-  .header-inner { grid-template-columns: auto minmax(0, 1fr) auto; min-height: 4rem; }
+  .header-inner { min-height: 4rem; padding: 0.5rem 0; }
   .brand-name { display: none; }
   .header-search kbd, .user-chip span { display: none; }
   .admin-link { width: 2.35rem; height: 2.35rem; min-height: 0; padding: 0; }
@@ -656,7 +719,7 @@ input:focus-visible { outline-offset: 0; }
   .game-grid { gap: 1.25rem 0.75rem; }
   .game-card-body { padding-top: 0.7rem; }
   .game-card h3 { font-size: 0.92rem; }
-  .game-card-kicker span:first-child, .game-card-meta span:first-child { max-width: 7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .game-card-kicker > span:first-child, .game-card-meta span:first-child { max-width: 7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .game-detail { grid-template-columns: 1fr; }
   .detail-cover-column { width: min(75vw, 18rem); margin: 0 auto; }
   .detail-content { text-align: left; }

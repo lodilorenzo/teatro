@@ -22,7 +22,8 @@ export function formatBytes(bytes) {
 }
 
 export function metadataList(item, key) {
-  const value = item?.metadatum?.[key];
+  const top = item?.metadatum?.[key];
+  const value = Array.isArray(top) && top.length ? top : item?.metadatum?.romm?.[key];
   return Array.isArray(value)
     ? value.filter((entry) => entry !== null && entry !== undefined && String(entry)).map(String)
     : [];
@@ -57,7 +58,7 @@ export function uniqueCoverPaths(images) {
   return [...new Set(images.map((image) => image.dataset.coverPath).filter(Boolean))];
 }
 
-export function syncCoverImages(root, authorization) {
+export function syncCoverImages(root, authorization, collectionSlug = '') {
   const currentGeneration = ++generation;
   observer?.disconnect();
   observer = null;
@@ -71,7 +72,7 @@ export function syncCoverImages(root, authorization) {
     URL.revokeObjectURL(url);
     coverUrls.delete(path);
   }
-  if (!authorization) return;
+  if (!authorization && !collectionSlug) return;
 
   const imagesByPath = new Map(paths.map((path) => [path, []]));
   for (const image of images) {
@@ -85,6 +86,7 @@ export function syncCoverImages(root, authorization) {
       path,
       images: imagesByPath.get(path),
       authorization,
+      collectionSlug,
       generation: currentGeneration,
     });
     pumpQueue();
@@ -124,7 +126,7 @@ function pumpQueue() {
     const task = queue.shift();
     if (task.generation !== generation || !activePaths.has(task.path)) continue;
     activeLoads += 1;
-    fetchCover(task.path, task.authorization, task.generation)
+    fetchCover(task.path, task.authorization, task.generation, task.collectionSlug)
       .then((url) => {
         if (!url || task.generation !== generation) return;
         for (const image of task.images) {
@@ -138,7 +140,7 @@ function pumpQueue() {
   }
 }
 
-async function fetchCover(path, authorization, requestedGeneration) {
+async function fetchCover(path, authorization, requestedGeneration, collectionSlug) {
   if (coverUrls.has(path)) return coverUrls.get(path);
   const key = `${requestedGeneration}:${path}`;
   if (pendingUrls.has(key)) return pendingUrls.get(key);
@@ -146,8 +148,10 @@ async function fetchCover(path, authorization, requestedGeneration) {
   const pending = (async () => {
     let objectUrl = null;
     try {
-      const response = await fetch(`/assets/romm/resources/${encodeResourcePath(path)}`, {
-        headers: { Authorization: authorization },
+      const base = collectionSlug ? `/api/collections/${encodeURIComponent(collectionSlug)}/covers` : '/assets/romm/resources';
+      const response = await fetch(`${base}/${encodeResourcePath(path)}`, {
+        headers: authorization ? { Authorization: authorization } : {},
+        credentials: 'omit',
       });
       if (!response.ok) return null;
       objectUrl = URL.createObjectURL(await response.blob());

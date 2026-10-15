@@ -129,6 +129,73 @@ test('platform and search pages render game cards with pagination-safe routes', 
   assert.doesNotMatch(searchOutput, /page-search-form/);
 });
 
+test('public grid and list cards place rating below the year without duplicating it in play modes', () => {
+  for (const view of ['grid', 'list']) {
+    for (const render of [
+      (page) => renderSearchPage({ page, route: { query: '' }, view }),
+      (page) => renderPlatformPage({ platform: populated, page, route: { query: '' }, view }),
+    ]) {
+      const output = render({ items: [{ ...game, metadatum: {
+        ...game.metadatum, total_rating: 83.5, game_modes: ['Co-operative'],
+      } }], total: 1, limit: 24, offset: 0 });
+      assert.match(output, /class="game-card-stats"><span>1991<\/span><span class="game-card-rating" title="Rating">83\.5 \/ 100<\/span>/);
+      assert.equal((output.match(/83\.5 \/ 100/g) || []).length, 1);
+      assert.match(output, /class="game-card-facts">Co-operative<\/p>/);
+      for (const metadatum of [{ total_rating: 0 }, { rating: 70 }, { release_year: 1991 }]) {
+        const markup = render({ items: [{ ...game, metadatum }], total: 1, limit: 24, offset: 0 });
+        if (metadatum.release_year) assert.doesNotMatch(markup, /class="game-card-rating"/);
+        else assert.match(markup, new RegExp(`class="game-card-rating" title="Rating">${metadatum.total_rating ?? metadatum.rating} / 100`));
+      }
+    }
+  }
+});
+
+test('filter-only browsing exposes labeled controls, applied values and preserved pagination', () => {
+  const route = { name: 'search', query: '', page: 1,
+    filters: { game_mode: 'cooperative', genre: '<unsafe>', rating_min: '0', size_max: '1048576', sort: 'rating', order: 'desc' } };
+  const output = renderSearchPage({ page: { items: [game], total: 30, limit: 24, offset: 0,
+    ranges: { year: [1990, 2000], rating: [0, 90.5], size: [0, 1048576] } }, route });
+  assert.match(output, /Browse games/);
+  assert.match(output, /class="catalog-filters" open/);
+  assert.match(output, /name="game_mode"[\s\S]*value="cooperative" selected/);
+  assert.match(output, /value="rating" selected/);
+  assert.match(output, /data-sort-order="desc" aria-pressed="true" aria-label="Descending order"/);
+  assert.match(output, /data-sort-order="asc" aria-pressed="false" aria-label="Ascending order"/);
+  assert.match(output, /class="icon sort-asc"/);
+  assert.match(output, /class="icon sort-desc"/);
+  assert.ok(output.indexOf('class="catalog-sort"') < output.indexOf('data-library-view="grid"'));
+  assert.ok(output.indexOf('data-library-view="grid"') < output.indexOf('data-library-view="list"'));
+  assert.ok(output.indexOf('class="catalog-sort"') < output.indexOf('id="catalog-controls"'));
+  assert.doesNotMatch(output, /Apply sort|Apply filters|filter-help|<select name="order"/);
+  assert.ok(output.indexOf('class="button subtle-button catalog-clear"') < output.indexOf('name="sort"'));
+  assert.ok(output.indexOf('name="sort"') < output.indexOf('data-sort-order="asc"'));
+  assert.ok(output.indexOf('data-sort-order="desc"') < output.indexOf('data-library-view="grid"'));
+  assert.match(output, /class="catalog-field"><span>Genre<\/span><input name="genre"/);
+  assert.match(output, /class="catalog-field"><span>Minimum<span class="visually-hidden"> release year/);
+  assert.match(output, /aria-label="Clear filters" title="Clear filters"/);
+  assert.match(output, /name="rating_min"[^>]*value="0"/);
+  assert.match(output, /name="size_max"[^>]*value="1"/);
+  assert.match(output, /value="&lt;unsafe&gt;"/);
+  assert.doesNotMatch(output, /<unsafe>/);
+  assert.match(output, /game_mode=cooperative[^"\s]*page=2/);
+  assert.doesNotMatch(output, /Ranges use games matching the other applied filters/);
+  assert.equal((output.match(/type="range"/g) || []).length, 6);
+  assert.match(output, /data-range="year"[\s\S]*type="range" min="1990" max="2000"/);
+  assert.match(output, /aria-label="Minimum release year"/);
+  assert.match(output, /data-range-value data-active="false" data-default="1990"/);
+  const emptyRanges = renderSearchPage({ page: { items: [], total: 0 }, route: { query: '' } });
+  assert.match(emptyRanges, /No known values with other filters/);
+  assert.doesNotMatch(emptyRanges, /catalog-clear|Clear filters/);
+  const sortOnly = renderSearchPage({ page: { items: [], total: 0 }, route: { query: '', filters: { sort: 'rating', order: 'desc' } } });
+  assert.doesNotMatch(sortOnly, /catalog-clear|Clear filters/);
+  assert.equal((emptyRanges.match(/type="range"[^>]* disabled/g) || []).length, 6);
+  const detail = renderGameDetail({ ...game, metadatum: { total_rating: 0, romm: { age_ratings: ['PEGI 12'], game_modes: ['Co-operative'], tags: ['Family'] } } });
+  assert.match(detail, /0 \/ 100/);
+  assert.doesNotMatch(detail, /Age classifications|PEGI 12/);
+  assert.doesNotMatch(output, /age_rating|Age classification|value="age"/);
+  assert.match(detail, /Play modes<\/dt><dd>Co-operative/);
+});
+
 test('game detail renders metadata and authenticated file download controls', () => {
   const singleFileOutput = renderGameDetail(game);
   assert.match(singleFileOutput, /Download · 1\.5 KiB/);
@@ -164,6 +231,11 @@ test('shell includes one contextual search, session controls, counts, and admin 
   assert.equal((admin.match(/role="search"/g) || []).length, 1);
   assert.match(admin, /placeholder="Search all games…"/);
   assert.match(admin, /data-action="logout"/);
+  const browse = admin.match(/<a class="icon-button browse-link"[^>]*>[\s\S]*?<\/a>/)?.[0];
+  assert.ok(browse);
+  assert.match(browse, /href="#\/search" aria-label="Browse &amp; filter" title="Browse &amp; filter"/);
+  assert.match(browse, /<svg class="icon" aria-hidden="true"/);
+  assert.doesNotMatch(browse, />Browse &amp; filter</);
   assert.match(admin, /class="admin-link" href="\/admin"/);
   assert.match(admin, /aria-label="Open Teatro admin"/);
   assert.match(admin, />Admin<\/span>/);

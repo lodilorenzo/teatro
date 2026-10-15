@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use axum::{
     Form, Json,
@@ -15,7 +15,7 @@ use super::{
 use crate::{
     domain::{
         platform::Platform,
-        rom::{PaginatedRoms, Rom, RomFile, RomFileDependency, RomListParams},
+        rom::{PaginatedRoms, Rom, RomFile, RomFileDependency, RomFilters, RomListParams},
     },
     error::ApiError,
     repositories::{platforms, roms},
@@ -44,22 +44,40 @@ pub async fn list_roms(
     State(state): State<AppState>,
     RawQuery(raw_query): RawQuery,
 ) -> Result<Json<RomListResponse>, ApiError> {
-    let query = RomQuery::parse(raw_query.as_deref())?;
-    let page = roms::list(
-        state.db(),
-        RomListParams {
-            limit: query.limit,
-            offset: query.offset,
-            search: query.search.clone(),
-            newest_first: query.newest_first,
-            missing_cover: query.missing_cover,
-        },
-        &query.platform_ids,
-    )
-    .await
-    .map_err(database_error)?;
+    list_roms_scoped(&state, raw_query.as_deref(), None).await
+}
 
-    Ok(Json(RomListResponse::from(page)))
+pub(super) async fn list_roms_scoped(
+    state: &AppState,
+    raw_query: Option<&str>,
+    collection_id: Option<i64>,
+) -> Result<Json<RomListResponse>, ApiError> {
+    let mut query = RomQuery::parse(raw_query)?;
+    query.filters.collection_id = collection_id;
+    let params = RomListParams {
+        limit: query.limit,
+        offset: query.offset,
+        search: query.search,
+        sort: query.sort,
+        descending: query.descending,
+        missing_cover: query.missing_cover,
+        filters: query.filters,
+    };
+    let ranges = if query.include_ranges {
+        Some(
+            roms::range_bounds(state.db(), &params, &query.platform_ids)
+                .await
+                .map_err(database_error)?,
+        )
+    } else {
+        None
+    };
+    let page = roms::list(state.db(), params, &query.platform_ids)
+        .await
+        .map_err(database_error)?;
+    let mut response = RomListResponse::from(page);
+    response.ranges = ranges;
+    Ok(Json(response))
 }
 
 pub async fn rom_detail(
@@ -254,14 +272,17 @@ async fn select_file(
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 struct RomQuery {
     limit: i64,
     offset: i64,
     platform_ids: Vec<i64>,
     search: Option<String>,
-    newest_first: bool,
+    sort: String,
+    descending: bool,
     missing_cover: bool,
+    include_ranges: bool,
+    filters: RomFilters,
 }
 
 impl RomQuery {
@@ -270,8 +291,11 @@ impl RomQuery {
         let mut offset = 0;
         let mut platform_ids = BTreeSet::new();
         let mut search = None;
-        let mut newest_first = false;
+        let mut sort = "name".to_string();
+        let mut order = None;
         let mut missing_cover = false;
+        let mut include_ranges = false;
+        let mut filters = RomFilters::default();
 
         for (key, value) in query_pairs(raw_query) {
             match key.as_str() {
@@ -284,10 +308,70 @@ impl RomQuery {
                 }
                 "search" | "q" => {
                     let value = value.trim();
-                    search = (!value.is_empty()).then(|| value.to_string());
+                    search = bounded_filter_text("search", value)?;
                 }
-                "sort" if value == "recent" => newest_first = true,
-                "sort" => return Err(ApiError::bad_request("sort must be recent")),
+                "sort"
+                    if ["name", "recent", "year", "rating", "size"].contains(&value.as_str()) =>
+                {
+                    sort = value
+                }
+                "sort" => {
+                    return Err(ApiError::bad_request(
+                        "sort must be name, recent, year, rating or size",
+                    ));
+                }
+                "order" if value == "asc" || value == "desc" => order = Some(value),
+                "order" => return Err(ApiError::bad_request("order must be asc or desc")),
+                "year" => {
+                    let year = parse_filter_integer("year", &value, 1, 9999)?;
+                    filters.year_min = Some(year);
+                    filters.year_max = Some(year);
+                }
+                "year_min" => {
+                    filters.year_min = Some(parse_filter_integer("year_min", &value, 1, 9999)?)
+                }
+                "year_max" => {
+                    filters.year_max = Some(parse_filter_integer("year_max", &value, 1, 9999)?)
+                }
+                "rating" => {
+                    let rating = parse_filter_rating("rating", &value)?;
+                    filters.rating_min = Some(rating);
+                    filters.rating_max = Some(rating);
+                }
+                "rating_min" => {
+                    filters.rating_min = Some(parse_filter_rating("rating_min", &value)?)
+                }
+                "rating_max" => {
+                    filters.rating_max = Some(parse_filter_rating("rating_max", &value)?)
+                }
+                "size_min" => filters.size_min = Some(parse_non_negative_i64("size_min", &value)?),
+                "size_max" => filters.size_max = Some(parse_non_negative_i64("size_max", &value)?),
+                "game_mode" => filters.game_mode = bounded_filter_text("game_mode", &value)?,
+                "genre" | "developer" | "publisher" | "region" | "language" | "tag" => {
+                    let field = match key.as_str() {
+                        "genre" => "genres",
+                        "developer" => "developers",
+                        "publisher" => "publishers",
+                        "region" => "regions",
+                        "language" => "languages",
+                        _ => "tags",
+                    };
+                    if let Some(value) = bounded_filter_text(&key, &value)? {
+                        filters.metadata.push((field, value));
+                        if filters.metadata.len() > 16 {
+                            return Err(ApiError::bad_request(
+                                "at most 16 metadata filters are supported",
+                            ));
+                        }
+                    }
+                }
+                "include_ranges" if value == "true" => include_ranges = true,
+                "include_ranges" if value == "false" => include_ranges = false,
+                "include_ranges" => {
+                    return Err(ApiError::bad_request(
+                        "include_ranges must be true or false",
+                    ));
+                }
                 "missing_cover" if value == "true" => missing_cover = true,
                 "missing_cover" if value == "false" => missing_cover = false,
                 "missing_cover" => {
@@ -297,15 +381,70 @@ impl RomQuery {
             }
         }
 
+        validate_filter_range("year", filters.year_min, filters.year_max)?;
+        validate_filter_range("rating", filters.rating_min, filters.rating_max)?;
+        validate_filter_range("size", filters.size_min, filters.size_max)?;
+        let descending = order
+            .as_deref()
+            .map_or(sort == "recent", |value| value == "desc");
         Ok(Self {
             limit,
             offset,
             platform_ids: platform_ids.into_iter().collect(),
             search,
-            newest_first,
+            sort,
+            descending,
             missing_cover,
+            include_ranges,
+            filters,
         })
     }
+}
+
+fn bounded_filter_text(key: &str, value: &str) -> Result<Option<String>, ApiError> {
+    let value = value.trim();
+    if value.chars().count() > 200 {
+        return Err(ApiError::bad_request(format!(
+            "{key} must be at most 200 characters"
+        )));
+    }
+    Ok((!value.is_empty()).then(|| value.to_string()))
+}
+
+fn parse_filter_integer(
+    key: &'static str,
+    value: &str,
+    min: i64,
+    max: i64,
+) -> Result<i64, ApiError> {
+    let parsed = parse_non_negative_i64(key, value)?;
+    if !(min..=max).contains(&parsed) {
+        return Err(ApiError::bad_request(format!(
+            "{key} must be between {min} and {max}"
+        )));
+    }
+    Ok(parsed)
+}
+
+fn parse_filter_rating(key: &str, value: &str) -> Result<f64, ApiError> {
+    value
+        .parse::<f64>()
+        .ok()
+        .filter(|value| value.is_finite() && (0.0..=100.0).contains(value))
+        .ok_or_else(|| ApiError::bad_request(format!("{key} must be a number between 0 and 100")))
+}
+
+fn validate_filter_range<T: PartialOrd>(
+    key: &str,
+    min: Option<T>,
+    max: Option<T>,
+) -> Result<(), ApiError> {
+    if min.zip(max).is_some_and(|(min, max)| min > max) {
+        return Err(ApiError::bad_request(format!(
+            "{key}_min must not exceed {key}_max"
+        )));
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -375,6 +514,8 @@ fn parse_i64_list(name: &'static str, value: &str) -> Result<Vec<i64>, ApiError>
 
 #[derive(Debug, Serialize)]
 pub struct RomListResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ranges: Option<BTreeMap<&'static str, Option<[f64; 2]>>>,
     items: Vec<RomResponse>,
     total: i64,
     limit: i64,
@@ -384,6 +525,7 @@ pub struct RomListResponse {
 impl From<PaginatedRoms> for RomListResponse {
     fn from(page: PaginatedRoms) -> Self {
         Self {
+            ranges: None,
             items: page.items.into_iter().map(RomResponse::from).collect(),
             total: page.total,
             limit: page.limit,
@@ -564,12 +706,14 @@ mod tests {
         assert_eq!(query.limit, 10_000);
         assert_eq!(query.offset, 10);
         assert_eq!(query.platform_ids, vec![1, 2, 3]);
-        assert!(!query.newest_first);
+        assert_eq!(query.sort, "name");
+        assert!(!query.descending);
         assert!(query.missing_cover);
         assert!(RomQuery::parse(Some("missing_cover=yes")).is_err());
 
         let recent = RomQuery::parse(Some("limit=10&sort=recent")).unwrap();
-        assert!(recent.newest_first);
+        assert_eq!(recent.sort, "recent");
+        assert!(recent.descending);
     }
 
     #[test]

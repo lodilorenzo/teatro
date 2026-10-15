@@ -4,7 +4,7 @@ import {
 import { clearCoverImages, syncCoverImages } from './shared.js';
 import { apiRequest } from './api.js';
 import { createSession, revokeSession, clearSavedAuth, loadSavedAuth, saveAuth } from './auth.js';
-import { PAGE_SIZE, contextualSearchHash, gameHash, parseRoute, romListPath } from './catalog.js';
+import { PAGE_SIZE, bindCatalogFilters, bindCatalogRanges, catalogSortFilters, contextualSearchHash, gameHash, parseRoute, preserveCatalogForm, romListPath } from './catalog.js';
 import { downloadArchive, downloadFile } from './downloads.js';
 import { captureScroll, restoreScroll, scrollToTop } from './scroll.js';
 import {
@@ -26,6 +26,9 @@ const state = {
   platforms: [],
   recentGames: [],
   stats: null,
+  collections: [],
+  collection: null,
+  collectionSlug: decodeURIComponent(window.location.pathname.split('/').filter(Boolean)[0] || ''),
   route: parseRoute(window.location.hash),
   libraryView: 'grid',
   game: null,
@@ -33,13 +36,37 @@ const state = {
 let navigationRequest = 0;
 let searchTimer = null;
 let toastTimer = null;
+let sortFocus = '';
+let filterHash = '';
 // A navigation that stays on the same route (a retry, a repeated search, a hash re-entry) keeps the
 // reader where they were. The snapshot is taken once per navigation so the intermediate loading
 // screen cannot overwrite it with its own, necessarily empty, offsets.
 let pendingScroll = null;
 void resumeBackgroundTransfers(state.auth?.header).catch(() => null);
 
+function apiBase() {
+  return state.collectionSlug ? `/api/collections/${encodeURIComponent(state.collectionSlug)}` : '/api';
+}
+
 async function bootstrap() {
+  if (state.collectionSlug) {
+    renderContent(renderLoading('Opening collection…'));
+    const authorization = state.auth?.header;
+    try {
+      const collection = await apiRequest(apiBase(), authorization, { allowAnonymous: true });
+      const user = authorization ? await apiRequest('/api/users/me', authorization).catch(() => null) : null;
+      if (state.auth?.header !== authorization) return;
+      state.collection = collection;
+      state.user = user;
+      await navigate();
+    } catch (error) {
+      if (state.auth?.header !== authorization) return;
+      if (error.status === 401) { state.collection = null; renderLoginPage(); }
+      else if (error.status === 404) renderContent(renderNotFound());
+      else renderContent(renderError(error));
+    }
+    return;
+  }
   if (!state.auth) {
     renderLoginPage();
     return;
@@ -48,17 +75,19 @@ async function bootstrap() {
   renderContent(renderLoading('Opening your library…'));
   const authorization = state.auth.header;
   try {
-    const [user, platforms, recentPage, stats] = await Promise.all([
+    const [user, platforms, recentPage, stats, collections] = await Promise.all([
       apiRequest('/api/users/me', authorization),
       apiRequest('/api/platforms', authorization),
       apiRequest(romListPath({ limit: 10, sort: 'recent' }), authorization),
       apiRequest('/api/stats', authorization).catch(() => null),
+      apiRequest('/api/collections', authorization),
     ]);
     if (state.auth?.header !== authorization) return;
     state.user = user;
     state.platforms = platforms;
     state.recentGames = recentPage.items || [];
     state.stats = stats;
+    state.collections = collections;
     await navigate();
   } catch (error) {
     if (state.auth?.header !== authorization) return;
@@ -70,7 +99,7 @@ async function bootstrap() {
 function scrollPageKey(route) {
   return [
     'public', route?.name || 'unknown', route?.platformId ?? '', route?.query || '',
-    route?.page ?? '', route?.gameId ?? '',
+    route?.page ?? '', route?.gameId ?? '', JSON.stringify(route?.filters || {}),
   ].join(':');
 }
 
@@ -115,68 +144,76 @@ async function onLogin(event) {
 async function navigate() {
   clearTimeout(searchTimer);
   searchTimer = null;
-  if (!state.auth) {
+  if (!state.auth && !state.collection) {
     renderLoginPage();
     return;
   }
-  if (!state.user) return;
+  if (!state.user && !state.collection) return;
 
   const requestId = ++navigationRequest;
-  const route = parseRoute(window.location.hash);
+  const hash = window.location.hash;
+  const current = () => requestId === navigationRequest && hash === window.location.hash;
+  const route = parseRoute(hash);
+  if (filterHash !== hash) filterHash = '';
   pendingScroll = captureScroll(scrollPageKey(state.route), { root: app });
   state.route = route;
   state.game = null;
+  if (!['platform', 'search'].includes(route.name)) sortFocus = '';
 
-  if (route.name === 'platforms') {
-    renderContent(renderPlatforms(state.platforms, state.recentGames, state.stats), true);
+  if (route.name === 'platforms' && !state.collection) {
+    renderContent(renderPlatforms(state.platforms, state.recentGames, state.stats, state.collections), true);
     return;
   }
   if (route.name === 'notFound') {
     renderContent(renderNotFound(), true);
     return;
   }
-  if (route.name === 'search' && !route.query) {
-    renderContent(renderSearchPage({ page: emptyPage(), route, view: state.libraryView }), true);
-    return;
-  }
 
-  renderContent(renderLoading(route.name === 'game' ? 'Loading game…' : 'Loading games…'));
-  const authorization = state.auth.header;
+  if (!filterHash) renderContent(renderLoading(route.name === 'game' ? 'Loading game…' : 'Loading games…'));
+  const authorization = state.auth?.header;
   try {
+    if (state.collection && ['platforms', 'search'].includes(route.name)) {
+      const page = await apiRequest(romListPath({ query: route.query, page: route.page, filters: route.filters, includeRanges: true })
+        .replace('/api/', `${apiBase()}/`), authorization, { allowAnonymous: true });
+      if (current()) renderContent(renderSearchPage({ page, route, view: state.libraryView, collection: state.collection }), true);
+      return;
+    }
     if (route.name === 'platform') {
       const platform = state.platforms.find((item) => Number(item.id) === route.platformId);
       if (!platform) {
-        if (requestId === navigationRequest) renderContent(renderNotFound(), true);
+        if (current()) renderContent(renderNotFound(), true);
         return;
       }
       const page = await apiRequest(romListPath({
         platformId: platform.id,
+        includeRanges: true,
         query: route.query,
         page: route.page,
+        filters: route.filters,
       }), authorization);
-      if (requestId !== navigationRequest) return;
+      if (!current()) return;
       renderContent(renderPlatformPage({ platform, page, route, view: state.libraryView }), true);
       return;
     }
 
     if (route.name === 'search') {
-      const page = await apiRequest(romListPath({ query: route.query, page: route.page }), authorization);
-      if (requestId !== navigationRequest) return;
+      const page = await apiRequest(romListPath({ query: route.query, page: route.page, filters: route.filters, includeRanges: true }), authorization);
+      if (!current()) return;
       renderContent(renderSearchPage({ page, route, view: state.libraryView }), true);
       return;
     }
 
     if (route.name === 'game') {
-      const game = await apiRequest(`/api/roms/${encodeURIComponent(route.gameId)}`, authorization);
-      if (requestId !== navigationRequest) return;
+      const game = await apiRequest(`${apiBase()}/roms/${encodeURIComponent(route.gameId)}`, authorization, { allowAnonymous: Boolean(state.collection) });
+      if (!current()) return;
       state.game = game;
-      renderContent(renderGameDetail(game), true);
+      renderContent(renderGameDetail(game, state.collection), true);
       return;
     }
 
     renderContent(renderNotFound(), true);
   } catch (error) {
-    if (requestId !== navigationRequest) return;
+    if (!current()) return;
     if (error.status === 401) {
       endSession('Your sign-in has expired. Please sign in again.');
       return;
@@ -190,6 +227,14 @@ async function navigate() {
 }
 
 function renderContent(content, focusMain = false) {
+  if (filterHash && app.querySelector('.dual-range input:active')) {
+    const request = navigationRequest, hash = window.location.hash;
+    setTimeout(() => { if (request === navigationRequest && hash === window.location.hash) renderContent(content, focusMain); }, 50);
+    return;
+  }
+  const restoreForm = filterHash ? preserveCatalogForm(app.querySelector('#catalog-controls')) : null;
+  const scroll = restoreForm ? captureScroll(scrollPageKey(state.route), { root: app }) : pendingScroll;
+  filterHash = '';
   const activeSearch = document.activeElement?.id === 'header-search' ? document.activeElement : null;
   const searchDraft = activeSearch ? {
     value: activeSearch.value,
@@ -202,16 +247,24 @@ function renderContent(content, focusMain = false) {
     platforms: state.platforms,
     route: state.route,
     content,
+    collection: state.collection,
   });
-  restoreScroll(pendingScroll, scrollPageKey(state.route), { root: app });
+  restoreScroll(scroll, scrollPageKey(state.route), { root: app });
+  const catalogForm = app.querySelector('#catalog-controls');
+  const dirty = restoreForm?.(catalogForm);
   bindShellEvents();
-  syncCoverImages(app, state.auth?.header);
+  if (dirty) catalogForm.dispatchEvent(new Event('input'));
+  syncCoverImages(app, state.auth?.header, state.collectionSlug);
   if (searchDraft) {
+    sortFocus = '';
     const input = app.querySelector('#header-search');
     input.value = searchDraft.value;
     input.focus({ preventScroll: true });
     input.setSelectionRange(searchDraft.start, searchDraft.end);
-  } else if (focusMain) app.querySelector('#main-content')?.focus({ preventScroll: true });
+  } else if (sortFocus && app.querySelector(sortFocus)) {
+    app.querySelector(sortFocus).focus({ preventScroll: true });
+    sortFocus = '';
+  } else if (focusMain && !restoreForm) app.querySelector('#main-content')?.focus({ preventScroll: true });
 }
 
 function bindShellEvents() {
@@ -243,6 +296,35 @@ function bindShellEvents() {
       searchTimer = null;
       goTo(hash);
     }, 250);
+  });
+
+  const sortSelect = app.querySelector('.catalog-sort select');
+  const applySort = (order) => {
+    const direction = order || app.querySelector('[data-sort-order][aria-pressed="true"]').dataset.sortOrder;
+    const filters = catalogSortFilters(state.route.filters, sortSelect.value, direction);
+    const hash = contextualSearchHash({ ...state.route, filters }, state.platforms, state.route.query);
+    if (hash === window.location.hash) return;
+    clearTimeout(searchTimer);
+    searchTimer = null;
+    sortFocus = order ? `[data-sort-order="${order}"]` : '.catalog-sort select';
+    goTo(hash);
+  };
+  sortSelect?.addEventListener('change', () => applySort());
+  app.querySelectorAll('[data-sort-order]').forEach((button) => {
+    button.addEventListener('click', () => applySort(button.dataset.sortOrder));
+  });
+
+  const catalogForm = app.querySelector('#catalog-controls');
+  bindCatalogRanges(catalogForm);
+  bindCatalogFilters(catalogForm, (values) => {
+    const filters = catalogSortFilters(values, state.route.filters?.sort, state.route.filters?.order);
+    const hash = contextualSearchHash({ ...state.route, filters }, state.platforms, state.route.query);
+    if (hash === window.location.hash) return;
+    clearTimeout(searchTimer);
+    searchTimer = null;
+    filterHash = hash;
+    app.querySelector('#main-content')?.setAttribute('aria-busy', 'true');
+    goTo(hash);
   });
 
   const viewButtons = [...app.querySelectorAll('[data-library-view]')];
@@ -287,13 +369,14 @@ function bindRecentCarousel() {
 async function onDownloadFile(button) {
   const game = state.game;
   const file = game?.files?.find((item) => String(item.id) === button.dataset.downloadFile);
-  if (!game || !file || !state.auth) return;
+  if (!game || !file || (!state.auth && !state.collection?.lan_party_zone)) return;
   button.disabled = true;
   try {
     await downloadFile({
       romId: game.id,
       file,
-      authorization: state.auth.header,
+      authorization: state.auth?.header,
+      apiBase: apiBase(),
       notify: showToast,
     });
   } catch (error) {
@@ -305,12 +388,13 @@ async function onDownloadFile(button) {
 
 async function onDownloadArchive(button) {
   const game = state.game;
-  if ((game?.files?.length || 0) < 2 || !state.auth) return;
+  if ((game?.files?.length || 0) < 2 || (!state.auth && !state.collection?.lan_party_zone)) return;
   button.disabled = true;
   try {
     await downloadArchive({
       romId: game.id,
-      authorization: state.auth.header,
+      authorization: state.auth?.header,
+      apiBase: apiBase(),
       notify: showToast,
     });
   } catch (error) {
@@ -392,22 +476,19 @@ function endSession(message = '') {
   void clearBackgroundTransfers();
   clearSavedAuth();
   clearCoverImages();
-  renderLoginPage(message);
-}
-
-function emptyPage() {
-  return { items: [], total: 0, limit: PAGE_SIZE, offset: 0 };
+  if (state.collection?.lan_party_zone) void bootstrap();
+  else { state.collection = null; renderLoginPage(message); }
 }
 
 window.addEventListener('hashchange', navigate);
 window.addEventListener('pageshow', (event) => {
   if (!event.persisted) return;
   state.auth = loadSavedAuth();
-  if (!state.auth) endSession();
+  if (!state.auth && !state.collectionSlug) endSession();
   else void bootstrap();
 });
 document.addEventListener('keydown', (event) => {
-  if (!state.auth || event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+  if ((!state.auth && !state.collection) || event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
   event.preventDefault();
   document.getElementById('header-search')?.focus();

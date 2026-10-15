@@ -1,14 +1,15 @@
 export async function apiRequest(path, authorization, options = {}) {
-  if (!authorization) throw new ApiRequestError('Sign in to continue.', 401, 'unauthorized');
+  if (!authorization && !options.allowAnonymous) throw new ApiRequestError('Sign in to continue.', 401, 'unauthorized');
 
   const headers = new Headers(options.headers || {});
-  headers.set('Authorization', authorization);
+  if (authorization) headers.set('Authorization', authorization);
   if (!headers.has('Accept')) headers.set('Accept', options.raw ? '*/*' : 'application/json');
 
   const response = await fetch(path, {
     method: options.method || 'GET',
     body: options.body,
     headers,
+    credentials: 'omit',
   });
 
   if (!response.ok) throw await responseError(response);

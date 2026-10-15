@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  catalogRange,
+  catalogSortFilters,
   contextualSearchHash,
   gameHash,
   pageCount,
@@ -63,6 +65,56 @@ test('hash and API path builders encode user and server values', () => {
     romListPath({ limit: 10, sort: 'recent' }),
     '/api/roms?limit=10&offset=0&sort=recent',
   );
+});
+
+test('metadata filters and sort survive routes, pagination and contextual title searches', () => {
+  const filters = { game_mode: 'cooperative', year_min: '1991', year_max: '1991',
+    rating_min: '80.5', developer: 'Studio & Co', size_max: '1048576', sort: 'rating', order: 'desc' };
+  const hash = searchHash('', 3, filters);
+  const route = parseRoute(hash);
+  assert.deepEqual(route, { name: 'search', query: '', page: 3, filters });
+  const path = new URL(romListPath({ ...route, filters: route.filters }), 'http://test.invalid');
+  assert.equal(path.searchParams.get('offset'), '48');
+  for (const [key, value] of Object.entries(filters)) assert.equal(path.searchParams.get(key), value);
+  const platform = { id: 5, slug: 'genesis' };
+  const platformRoute = parseRoute(platformHash(platform, { filters, page: 2 }));
+  assert.deepEqual(platformRoute.filters, filters);
+  assert.deepEqual(parseRoute(contextualSearchHash(platformRoute, [platform], 'Sonic')).filters, filters);
+  assert.equal(parseRoute(contextualSearchHash(platformRoute, [platform], 'Sonic')).page, 1);
+  assert.equal(parseRoute(contextualSearchHash(route, [], '')).name, 'search');
+  assert.deepEqual(parseRoute('#/search?year=1991&rating=80').filters,
+    { year_min: '1991', year_max: '1991', rating_min: '80', rating_max: '80' });
+  assert.deepEqual(parseRoute('#/search?genre=Platform&unexpected=ignored&age_rating=PEGI+12').filters, { genre: 'Platform' });
+});
+
+test('instant sorting preserves applied filters without mutating them', () => {
+  const filters = { game_mode: 'cooperative', rating_min: '80', sort: 'rating', order: 'desc' };
+  assert.deepEqual(catalogSortFilters(filters, 'size', 'asc'), { ...filters, sort: 'size', order: 'asc' });
+  assert.equal(filters.sort, 'rating');
+  assert.equal(filters.order, 'desc');
+  assert.deepEqual(catalogSortFilters({ game_mode: 'cooperative' }, 'recent'),
+    { game_mode: 'cooperative', sort: 'recent', order: 'desc' });
+  assert.deepEqual(catalogSortFilters(), { sort: 'name', order: 'asc' });
+});
+
+test('range defaults use complete facet bounds, preserve selections and choose readable size units', () => {
+  assert.deepEqual(catalogRange('year', [1991, 1995]).values, [1991, 1995]);
+  assert.deepEqual(catalogRange('rating', [0, 90.5], { rating_min: '0' }).values, [0, 91]);
+  const selected = catalogRange('rating', [70, 90], { rating_min: '60', rating_max: '95' });
+  assert.deepEqual([selected.min, selected.max, ...selected.values], [60, 95, 60, 95]);
+  assert.deepEqual(catalogRange('size', [1024, 22528]).values, [1, 22]);
+  assert.deepEqual(catalogRange('rating', [80.01, 90.5]).defaults, [81, 91]);
+  assert.deepEqual(catalogRange('rating', [0, 100], { rating_min: '80.1', rating_max: '90.5' }).values, [81, 91]);
+  assert.deepEqual(catalogRange('rating', [0, 0]).values, [0, 0]);
+  assert.deepEqual(catalogRange('size', [1025, 22529]).defaults, [2, 23]);
+  assert.deepEqual(catalogRange('size', [1024, 22528], { size_min: '1025', size_max: '22529' }).values, [2, 23]);
+  assert.deepEqual(catalogRange('size', [1024 ** 3 + 1, 3 * 1024 ** 3 + 1]).values, [2, 4]);
+  assert.equal(catalogRange('size', [1024, 22528]).unit, 'KiB');
+  assert.equal(catalogRange('size', [0, 1024 ** 3]).unit, 'GiB');
+  assert.equal(catalogRange('year', null).available, false);
+  assert.deepEqual(catalogRange('year', null).values, ['', '']);
+  assert.deepEqual(catalogRange('year', [1991, 1991]).values, [1991, 1991]);
+  assert.match(romListPath({ includeRanges: true }), /include_ranges=true/);
 });
 
 test('display helpers handle metadata, initials, sizes, and page bounds', () => {

@@ -139,6 +139,12 @@ async fn mock_games(
             "summary": "A fast platform game.",
             "first_release_date": 662688000,
             "genres": [{ "name": "Platform" }],
+            "game_modes": [{ "name": "Co-operative" }],
+            "age_ratings": [
+                { "organization": { "name": "PEGI" }, "rating_category": { "rating": "12+" } },
+                { "organization": { "name": "ESRB" }, "rating_category": { "rating": "Teen" } },
+                { "organization": { "name": "ESRB" }, "rating_category": {} }
+            ],
             "platforms": [platform],
             "involved_companies": [
                 { "developer": true, "publisher": false, "company": { "name": "Sega" } },

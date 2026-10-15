@@ -9,6 +9,7 @@ import { html } from './dom.js';
 import {
   clearBackgroundTransfers, resumeBackgroundTransfers, settleBackgroundTransferStarts,
 } from './features/background-transfer.js';
+import { createCollectionsController } from './features/collections.js';
 import { ConversionController } from './features/conversion.js';
 import { GogImportController } from './features/gog-import.js';
 import { createIgdbController } from './features/igdb.js';
@@ -110,7 +111,7 @@ async function refreshAll() {
     }
     await Promise.all([
       loadPlatforms(), loadStats(), loadIgdbStatus(), loadIgdbSettings(),
-      loadGogImportStatus(), loadRommSourceStatus(), loadRoms(),
+      loadGogImportStatus(), loadRommSourceStatus(), loadRoms(), collectionsController.load(),
     ]);
   } catch (error) {
     showError(error);
@@ -158,6 +159,7 @@ conversionController = new ConversionController(controllerContext);
 gogImportController = new GogImportController(controllerContext);
 libraryScanController = new LibraryScanController(controllerContext);
 const libraryController = createLibraryController(controllerContext);
+const collectionsController = createCollectionsController(controllerContext);
 const cleanupController = createServerCleanupController(controllerContext);
 const igdbController = createIgdbController(controllerContext);
 rommSourceController = new RommSourceController(controllerContext);
@@ -241,6 +243,7 @@ function render() {
   const snapshot = beginRender();
   const screenHtml = {
     library: renderLibrary,
+    collections: collectionsController.render,
     upload: renderImport,
     jobs: renderJobs,
     settings: renderSettings,
@@ -260,6 +263,7 @@ function render() {
         <nav class="side-nav" aria-label="Admin sections">
           ${sideNavButton('dashboard', 'layout-dashboard', 'Dashboard', statsSummary())}
           ${sideNavButton('library', 'library', 'Library')}
+          ${sideNavButton('collections', 'folder', 'Collections')}
           ${sideNavButton('upload', 'upload', 'Import')}
           ${state.rommSource?.configured ? sideNavButton('romm', 'download', 'RomM', rommSummary()) : ''}
           ${sideNavButton('jobs', 'list-todo', 'Jobs', jobsSummary())}
@@ -297,6 +301,7 @@ function bindEvents() {
     void clearBackgroundTransfers();
     clearAuth();
     resetSession();
+    collectionsController.reset();
     render();
   });
   app.querySelector('[data-action="refresh"]')?.addEventListener('click', refreshAll);
@@ -329,6 +334,7 @@ function bindEvents() {
   gogImportController.bind();
   jobsController.bind();
   libraryController.bind();
+  if (state.screen === 'collections') collectionsController.bind();
   libraryScanController.bind();
   rommSourceController.bind();
   cleanupController.bind();

@@ -4,6 +4,7 @@
 
 - [Authentication](#authentication)
 - [Browse and read](#browse-and-read)
+- [Collections and LAN Party Zones](#collections-and-lan-party-zones)
 - [Downloads](#downloads)
 - [Library management](#library-management)
 - [Integrity](#integrity)
@@ -18,8 +19,9 @@ in command history. IDs are examples; obtain real IDs from your server.
 ## Authentication
 
 Protected routes accept HTTP Basic Auth, a scoped API-token Bearer header, or a
-browser-session Bearer header. Catalog, cover and game access requires read access;
-all `/api/admin/*` operations require effective admin access.
+browser-session Bearer header. Catalog, cover and game access requires read access
+except for explicitly enabled LAN Party Zone routes below. All `/api/admin/*`
+operations require effective admin access.
 
 ```bash
 curl --fail --user admin http://127.0.0.1:4440/api/users/me
@@ -53,7 +55,7 @@ explicit API-token revocation. Passwords use Argon2id; session and API tokens ar
 stored as hashes. Sessions expire after 24 hours or 30 days with Remember me.
 
 Static `/`, `/admin`, `/setup` shells and allowlisted assets are public. They do
-not make catalog data public. Download-consumption endpoints use tickets instead
+not make the full catalog public. Download-consumption endpoints use tickets instead
 of an Authorization header, as described below.
 
 ## Browse and read
@@ -67,10 +69,32 @@ of an Authorization header, as described below.
 | `GET /api/admin/stats` | Administrative catalog, platform and library-root totals. |
 | `GET /assets/romm/resources/{path}` | Authenticated managed cover/asset bytes. |
 
-Game-list query parameters are `limit`, `offset`, `platform_ids`, `search` or alias
-`q`, `missing_cover=true`, and `sort=recent`. `platform_ids` accepts repeated keys,
-comma-separated IDs, or both. Lists otherwise sort by title with stable ID ordering;
-recent sorting uses descending creation time and ID. The limit is capped at 10,000.
+Game-list query parameters include `limit`, `offset`, `platform_ids`, `search` or
+alias `q`, and `missing_cover=true`. `platform_ids` accepts repeated keys,
+comma-separated IDs, or both. The limit is capped at 10,000.
+
+`sort` accepts `name`, `recent`, `year`, `rating` or `size`; `order` accepts `asc`
+or `desc`, defaulting to descending for `recent` and ascending otherwise. Unknown
+numeric values sort last; ties use case-insensitive title and ID. Recent sorting
+uses creation time and ID. Unsupported sort/order values return 400.
+
+Metadata filters combine before pagination:
+
+| Parameter | Meaning |
+| --- | --- |
+| `game_mode` | Play-mode name or supported alias, such as `cooperative` or `multiplayer`. |
+| `genre`, `developer`, `publisher`, `region`, `language`, `tag` | Exact case-insensitive names. Repeated predicates combine. |
+| `year`, `year_min`, `year_max` | Exact year or inclusive bounds, 1 to 9999. |
+| `rating`, `rating_min`, `rating_max` | Exact score or inclusive bounds, 0 to 100; uses total rating, then user/critic score. |
+| `size_min`, `size_max` | Inclusive total registered file size in bytes. |
+| `include_ranges=true` | Add `ranges` with year/rating/size min/max pairs or null. |
+
+Text filters allow 200 characters and at most 16 metadata-name predicates. Invalid,
+reversed or out-of-range bounds return 400. Missing metadata does not match its
+filter. Range bounds use games matching the other filters before pagination,
+excluding the field's own bounds. Existing clients receive no `ranges` field or
+range-query work unless requested. Reapply IGDB matches to populate play modes
+for older games. Age classifications are not imported or displayed.
 
 ```bash
 curl --fail --user admin \
@@ -83,6 +107,46 @@ A game has `id`, `name`, `slug`, `platform_id`, `platform_slug`,
 key; no duplicate `metadata` alias is emitted. `fs_name` identifies the preferred
 launcher, while `fs_size_bytes` sums all registered physical files. Files retain
 `id`, `file_name`, `file_size_bytes` plus grouping/launch fields.
+
+## Collections and LAN Party Zones
+
+`GET /{slug}` and `GET /{slug}/` serve the player shell for an existing collection,
+or return 404. Regular collections require login. A collection with
+`lan_party_zone: true` permits anonymous browsing and downloads of selected games;
+this is not an IP/subnet restriction.
+
+| Method and path | Access and result |
+| --- | --- |
+| `GET /api/collections` | Authenticated read; array of `{id,name,slug,lan_party_zone,rom_count}`, sorted by name. |
+| `POST /api/admin/collections` | Admin; create with JSON below, return 201 and collection. |
+| `PUT /api/admin/collections/{id}` | Admin; atomically replace fields and membership. |
+| `DELETE /api/admin/collections/{id}` | Admin; 204, never deletes game files. |
+| `GET /api/collections/{slug}` | Collection read; fields plus `rom_ids`. |
+| `GET /api/collections/{slug}/roms` | Collection read; ordinary list queries/results scoped before pagination. |
+| `GET /api/collections/{slug}/roms/{id}` | Collection read; member game detail. |
+| `GET /api/collections/{slug}/covers/{path}` | Collection read; cached covers referenced by member games only. |
+| `POST /api/collections/{slug}/roms/{id}/files/{file_id}/download-ticket` | Collection read; ordinary file-ticket response. |
+| `POST /api/collections/{slug}/roms/{id}/archive-ticket` | Collection read; ordinary bounded ZIP-ticket response. |
+
+```json
+{"name":"Friday games","slug":"friday-games","lan_party_zone":false,"rom_ids":[1,7,12]}
+```
+
+Names are trimmed and limited to 100 characters. Slugs normalize to lowercase,
+allow 1 to 80 ASCII letters/digits/hyphens, and start/end with a letter or digit.
+`api`, `admin`, `assets`, `public`, `setup` and `healthz` are reserved. Collisions
+return 409. Membership is a set of at most 10,000 positive existing game IDs;
+missing games return 400 and roll back the entire save. Empty collections are
+allowed. `lan_party_zone` defaults to false; other fields are required. Unknown
+JSON fields are rejected. Game deletion removes membership.
+
+Collection read access is anonymous only while the zone flag is enabled; otherwise
+normal Basic/Bearer read access applies. Membership is enforced even for admins.
+Non-member games/covers return 404; queries cannot override scope. Read responses
+use `private, no-store`. Ordinary catalog/assets and admin routes stay protected.
+Tickets use the existing consumption endpoints. Disabling/deleting a zone or
+removing a game prevents new anonymous requests, but does not recall downloads,
+stop admitted streams or revoke already-issued 60-second tickets.
 
 ## Downloads
 

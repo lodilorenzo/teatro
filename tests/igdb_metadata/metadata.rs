@@ -17,6 +17,8 @@ async fn igdb_match_saves_metadata_and_caches_cover_assets() {
             "summary": "A fast platform game.",
             "first_release_date": 662688000,
             "release_year": 1991,
+            "game_modes": ["Co-operative"],
+            "age_ratings": ["PEGI 12", "ESRB T"],
             "genres": ["Platform"],
             "developers": ["Sega"],
             "publishers": ["Sega"],
@@ -88,6 +90,8 @@ async fn igdb_match_saves_metadata_and_caches_cover_assets() {
     assert_eq!(detail["name"], "Sonic The Hedgehog");
     assert_eq!(detail["summary"], "A fast platform game.");
     assert_eq!(detail["metadatum"]["source"], "igdb");
+    assert_eq!(detail["metadatum"]["game_modes"], json!(["Co-operative"]));
+    assert!(detail["metadatum"].get("age_ratings").is_none());
     assert_eq!(detail["metadatum"].get("metadata"), None);
     assert_eq!(detail["path_cover_large"], large_path.as_str());
 

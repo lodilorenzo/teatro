@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-  <a href="Cargo.toml"><img src="https://img.shields.io/badge/version-v0.21.3-633436?style=flat-square" alt="Teatro version"></a>
+  <a href="Cargo.toml"><img src="https://img.shields.io/badge/version-Cargo.toml-633436?style=flat-square" alt="Teatro version"></a>
   <a href="#limits-and-release-status"><img src="https://img.shields.io/badge/status-beta-bd4444?style=flat-square" alt="Status: beta"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC_BY--NC--SA_4.0-633436?style=flat-square" alt="License: CC BY-NC-SA 4.0"></a>
   <a href="docs/development.md#run-from-source"><img src="https://img.shields.io/badge/Rust-1.93%2B-bd4444?style=flat-square" alt="Rust: 1.93 or newer"></a>
@@ -25,6 +25,8 @@ There is no stable binary release. The current version is defined in
 ## Features
 
 - Authenticated browsing, search, game details, covers and browser downloads.
+- Combined metadata filters and ascending/descending title, date, year, rating and size sorting.
+- Admin-curated collections with dedicated URLs and opt-in anonymous LAN Party Zones.
 - Uploads and managed-library scans for single files, optical-disc descriptors,
   tracks and multi-disc playlists.
 - Metadata and cover editing, optional IGDB matching, and explicit file deletion.
@@ -37,8 +39,8 @@ There is no stable binary release. The current version is defined in
 
 ## Quick start with Docker
 
-Use a 64-bit Linux Docker engine. The signed `0.21.3` image supports amd64 and
-arm64; there is no `latest` tag.
+Use a 64-bit Linux Docker engine. The signed beta image supports amd64 and
+arm64; there is no `latest` tag. The current version is defined in [Cargo.toml](Cargo.toml).
 
 For a fresh installation:
 
@@ -49,7 +51,7 @@ docker run --detach \
   --restart unless-stopped \
   --publish 4440:4440 \
   --volume teatro-data:/data \
-  ghcr.io/lodilorenzo/teatro:0.21.3
+  ghcr.io/lodilorenzo/teatro:0.22.1
 ```
 
 Open `http://YOUR_SERVER:4440/setup` and create the first administrator. Use `/`
