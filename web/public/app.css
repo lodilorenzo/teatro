@@ -545,6 +545,7 @@ input:focus-visible { outline-offset: 0; }
 @media (max-width: 370px) {
   .games-toolbar-controls { gap: 0.2rem; }
   .view-toggle .button { padding-inline: 0.4rem; }
+  .catalog-sort select { width: 6rem; }
   .catalog-sort .sort-direction .button, .catalog-sort .catalog-clear { width: 2rem; }
 }
 .view-toggle .button[aria-pressed="true"], .sort-direction .button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--backdrop); }
