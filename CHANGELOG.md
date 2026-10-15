@@ -22,6 +22,10 @@ Changes since 0.21.3. Version 0.22.0 was not published.
 - Membership is checked before listing, filtering, details, covers and download-ticket issuance. Disabling a zone stops new anonymous requests; existing single-use tickets keep their 60-second lifetime.
 - Deleting a collection keeps its games and files; changing its URL name breaks the old link.
 
+### Security dependencies
+
+- Updated rustls to 0.23.46 and quinn-proto to 0.11.18 to address the October 2026 advisories. Reviewed license texts are unchanged.
+
 ### Upgrade notes
 
 - Startup migrations add collection tables and remove stored age classifications from metadata and RomM provenance. Other metadata and game files are preserved. Age classifications are no longer imported or displayed.
