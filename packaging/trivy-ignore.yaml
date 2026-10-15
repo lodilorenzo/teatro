@@ -15,13 +15,13 @@
     {
       "id": "CVE-2026-12064",
       "purls": [
-        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
-        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7",
-        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
-        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7"
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u7?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u7?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u7?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u7?arch=arm64&distro=debian-13.7"
       ],
       "expired_at": "2026-10-17T00:00:00Z",
-      "statement": "Curl is used for explicit loopback HTTP checks, not schemeless SFTP/SCP. Other curl use is not covered. Owner-approved beta exception on 2026-09-17; not a package fix."
+      "statement": "Curl is used for explicit loopback HTTP checks, not schemeless SFTP/SCP. Other curl use is not covered. Owner reapproved the unchanged risk for patched deb13u7 on 2026-10-15 with the original expiry; not a package fix."
     },
     {
       "id": "CVE-2026-16742",
@@ -144,37 +144,15 @@
       "statement": "No SUID mount binary or mount capabilities in the supported service. Owner-approved beta exception on 2026-09-17; not a package fix."
     },
     {
-      "id": "CVE-2026-8286",
-      "purls": [
-        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
-        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7",
-        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
-        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7"
-      ],
-      "expired_at": "2026-10-17T00:00:00Z",
-      "statement": "Loopback HTTP curl checks do not use STARTTLS or sequential transfers. Owner-approved beta exception on 2026-09-17; not a package fix."
-    },
-    {
       "id": "CVE-2026-8458",
       "purls": [
-        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
-        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7",
-        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
-        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7"
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u7?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u7?arch=arm64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u7?arch=amd64&distro=debian-13.7",
+        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u7?arch=arm64&distro=debian-13.7"
       ],
       "expired_at": "2026-10-17T00:00:00Z",
-      "statement": "No Negotiate-authenticated libcurl client or reused transfer pool. Integrations use Rust reqwest. Owner-approved beta exception on 2026-09-17; not a package fix."
-    },
-    {
-      "id": "CVE-2026-8927",
-      "purls": [
-        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
-        "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7",
-        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=amd64&distro=debian-13.7",
-        "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5?arch=arm64&distro=debian-13.7"
-      ],
-      "expired_at": "2026-10-17T00:00:00Z",
-      "statement": "Each loopback curl invocation makes one transfer; no sequential proxy-authenticated transfers. Owner-approved beta exception on 2026-09-17; not a package fix."
+      "statement": "No Negotiate-authenticated libcurl client or reused transfer pool. Integrations use Rust reqwest. Owner reapproved the unchanged risk for patched deb13u7 on 2026-10-15 with the original expiry; not a package fix."
     },
     {
       "id": "CVE-2026-9538",

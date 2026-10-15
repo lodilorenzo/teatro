@@ -25,6 +25,7 @@ Changes since 0.21.3. Version 0.22.0 was not published.
 ### Security dependencies
 
 - Updated rustls to 0.23.46 and quinn-proto to 0.11.18 to address the October 2026 advisories. Reviewed license texts are unchanged.
+- Updated Debian snapshots to 15 October, including curl/libcurl 8.14.1-2+deb13u7. This fixes CVE-2026-92392 and two older curl issues. Removed the resolved exceptions; the owner reapproved the same two remaining curl risks for the patched version, with the unchanged 17 October expiry.
 
 ### Upgrade notes
 

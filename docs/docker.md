@@ -12,7 +12,7 @@
 
 ## Install
 
-Requirements: a 64-bit Linux Docker engine, Compose v2, curl, outbound access to
+Requirements: a 64-bit Linux Docker engine with Buildx, Compose v2, curl, outbound access to
 GHCR and enough local disk space for games and temporary work. Published beta
 images support native amd64 and arm64. No Rust toolchain or local build is needed.
 They are not a stable release or a guarantee of support for every Docker host.
@@ -20,9 +20,9 @@ They are not a stable release or a guarantee of support for every Docker host.
 ### Use a published beta image
 
 The [GHCR package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
-lists published versions; there is no `latest` tag. The example below pins the
-signed multi-platform `0.21.3` index from this [publication run](https://github.com/lodilorenzo/teatro/actions/runs/37439578345)
-by digest.
+lists published versions; there is no `latest` tag. The example below resolves the
+versioned multi-platform image to its immutable digest, then verifies its signature.
+Compare the digest with the [release notes](https://github.com/lodilorenzo/teatro/releases).
 
 Install a [current Cosign release](https://docs.sigstore.dev/cosign/system_config/installation/)
 with Sigstore bundle support. Review the [known findings and limits](image-publication.md#known-findings-and-scanner-limits)
@@ -39,8 +39,9 @@ set -euo pipefail
 mkdir teatro
 cd teatro
 curl --fail --location --output docker-compose.yml \
-  https://raw.githubusercontent.com/lodilorenzo/teatro/0.21.3_beta/docker-compose.yml
-export TEATRO_IMAGE=ghcr.io/lodilorenzo/teatro@sha256:da988f206f70b93b52b4a149c4394a7a2f0e4ee1361a3506e016fdad83163bef
+  https://raw.githubusercontent.com/lodilorenzo/teatro/0.22.1_beta/docker-compose.yml
+DIGEST=$(docker buildx imagetools inspect ghcr.io/lodilorenzo/teatro:0.22.1 --format '{{.Manifest.Digest}}')
+export TEATRO_IMAGE="ghcr.io/lodilorenzo/teatro@$DIGEST"
 cosign verify "$TEATRO_IMAGE" \
   --certificate-identity 'https://github.com/lodilorenzo/teatro/.github/workflows/docker.yml@refs/heads/main' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
