@@ -213,7 +213,7 @@ export function createLibraryController(context) {
     app.querySelectorAll('[data-library-view]').forEach((button) => {
       button.addEventListener('click', () => { setLibraryView(button.dataset.libraryView); dependencies.render(); });
     });
-    app.querySelectorAll('[data-page-offset]').forEach((button) => {
+    app.querySelectorAll('.library-list-card [data-page-offset]').forEach((button) => {
       button.addEventListener('click', async () => {
         setRomOffset(button.dataset.pageOffset);
         await dependencies.loadRoms().catch(dependencies.setError);

@@ -9,8 +9,8 @@ ARG BUILD_JOBS=2
 ENV LIBSQLITE3_SYS_USE_PKG_CONFIG=1
 RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
     && printf '%s\n' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z bookworm main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20261005T000000Z bookworm-security main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261015T000000Z bookworm main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20261015T000000Z bookworm-security main' \
       > /etc/apt/sources.list \
     && apt-get update \
     && apt-get install --no-install-recommends -y libclang-dev libsqlite3-dev pkg-config \
@@ -56,9 +56,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
     && printf '%s\n' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z trixie main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z trixie-updates main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20261005T000000Z trixie-security main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261015T000000Z trixie main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261015T000000Z trixie-updates main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20261015T000000Z trixie-security main' \
       > /etc/apt/sources.list \
     && printf 'Acquire::Check-Valid-Until "false";\nAcquire::Retries "3";\n' \
       > /etc/apt/apt.conf.d/99teatro-snapshot \
@@ -174,9 +174,9 @@ FROM debian:trixie-20260824-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf
 
 RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
     && printf '%s\n' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z trixie main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261005T000000Z trixie-updates main' \
-      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20261005T000000Z trixie-security main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261015T000000Z trixie main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20261015T000000Z trixie-updates main' \
+      'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20261015T000000Z trixie-security main' \
       > /etc/apt/sources.list \
     && printf 'Acquire::Check-Valid-Until "false";\nAcquire::Retries "3";\n' \
       > /etc/apt/apt.conf.d/99teatro-snapshot \

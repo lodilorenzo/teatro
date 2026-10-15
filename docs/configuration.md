@@ -39,7 +39,7 @@ Compose-only interpolation values, not application settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `TEATRO_IMAGE` | `teatro:local` | Image reference. Set `ghcr.io/lodilorenzo/teatro:0.21.3` for the published 0.21.3 release. |
+| `TEATRO_IMAGE` | `teatro:local` | Image reference. Set a versioned GHCR image or verified digest from the [release notes](https://github.com/lodilorenzo/teatro/releases). |
 | `TEATRO_HOST_PORT` | `4440` | Host-side port, or `127.0.0.1:4440` to publish on host loopback only. |
 | `TEATRO_DATA_VOLUME` | `teatro-data` | Persistent named volume. Use distinct names for isolated instances. |
 

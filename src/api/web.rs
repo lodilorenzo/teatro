@@ -44,6 +44,22 @@ pub async fn public_index(State(state): State<AppState>) -> Result<Response, Api
     ))
 }
 
+pub async fn collection_index(
+    State(state): State<AppState>,
+    ApiPath(slug): ApiPath<String>,
+) -> Result<Response, ApiError> {
+    super::collections::find(&state, &slug)
+        .await
+        .map_err(|error| {
+            if error.code() == "not_found" {
+                ApiError::not_found("route not found")
+            } else {
+                error
+            }
+        })?;
+    public_index(State(state)).await
+}
+
 pub async fn public_asset(ApiPath(path): ApiPath<String>) -> Result<Response, ApiError> {
     let (content_type, body): (&str, &[u8]) = match path.as_str() {
         "app.css" => web_asset!("text/css; charset=utf-8", "public/app.css"),
@@ -119,6 +135,7 @@ pub async fn admin_asset(ApiPath(path): ApiPath<String>) -> Result<Response, Api
         "views/dashboard.js" => js!("admin/views/dashboard.js"),
         "views/conversion.js" => js!("admin/views/conversion.js"),
         "features/conversion.js" => js!("admin/features/conversion.js"),
+        "features/collections.js" => js!("admin/features/collections.js"),
         "views/gog-import.js" => js!("admin/views/gog-import.js"),
         "views/jobs.js" => js!("admin/views/jobs.js"),
         "views/library.js" => js!("admin/views/library.js"),

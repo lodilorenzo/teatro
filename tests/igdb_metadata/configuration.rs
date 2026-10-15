@@ -38,6 +38,8 @@ async fn igdb_status_and_search_use_mocked_upstream() {
     assert_eq!(first["name"], "Sonic The Hedgehog");
     assert_eq!(first["release_year"], 1991);
     assert_eq!(first["genres"], json!(["Platform"]));
+    assert_eq!(first["game_modes"], json!(["Co-operative"]));
+    assert!(first.get("age_ratings").is_none());
     assert_eq!(first["developers"], json!(["Sega"]));
     assert_eq!(first["publishers"], json!(["Sega"]));
     assert_eq!(
@@ -49,6 +51,8 @@ async fn igdb_status_and_search_use_mocked_upstream() {
     assert_eq!(requests.len(), 1);
     assert!(requests[0].contains("search \"Sonic\";"));
     assert!(requests[0].contains("platforms.id"));
+    assert!(requests[0].contains("game_modes.name"));
+    assert!(!requests[0].contains("age_ratings"));
     assert!(requests[0].contains("where platforms = (29);"));
     assert!(requests[0].contains("limit 5;"));
     assert_eq!(first.get("platform_ids"), None);

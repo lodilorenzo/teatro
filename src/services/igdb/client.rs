@@ -506,7 +506,7 @@ fn build_search_body(query: &str, limit: u32, platform_ids: Option<&[i64]>) -> S
         })
         .unwrap_or_default();
     format!(
-        "search \"{}\";\nfields name,summary,storyline,first_release_date,rating,aggregated_rating,total_rating,genres.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.id,platforms.name,platforms.abbreviation,platforms.alternative_name,platforms.slug,cover.image_id,cover.url;{platform_filter}\nlimit {limit};",
+        "search \"{}\";\nfields name,summary,storyline,first_release_date,rating,aggregated_rating,total_rating,game_modes.name,genres.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.id,platforms.name,platforms.abbreviation,platforms.alternative_name,platforms.slug,cover.image_id,cover.url;{platform_filter}\nlimit {limit};",
         escape_apicalypse_string(query)
     )
 }

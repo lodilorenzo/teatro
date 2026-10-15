@@ -16,7 +16,7 @@ pub(crate) use params::{
 pub(crate) use read::{
     all_ids, cover_asset_paths_for_rom_ids, cover_paths_for_rom, existing_file_names, exists,
     file_dependencies_for_rom, find_file_by_hashes, find_file_by_id, folder_has_files_outside_roms,
-    ids_by_platform, indexed_relative_paths, relative_path_exists, slug_exists,
+    ids_by_platform, indexed_relative_paths, range_bounds, relative_path_exists, slug_exists,
     slug_exists_excluding,
 };
 pub(crate) use stats::library_stats;

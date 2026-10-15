@@ -93,8 +93,10 @@ async fn ten_thousand_rom_page_uses_bounded_work() {
             limit: 75,
             offset: 0,
             search: Some("Benchmark".to_string()),
-            newest_first: false,
+            sort: "name".to_string(),
+            descending: false,
             missing_cover: false,
+            filters: Default::default(),
         },
         &[platform.id],
     )
@@ -111,4 +113,70 @@ async fn ten_thousand_rom_page_uses_bounded_work() {
         "10k-ROM page exceeded the development performance budget: {elapsed:?}"
     );
     eprintln!("Teatro 10k benchmark: 3 SQL queries, 75-ROM response page, {elapsed:?}");
+
+    sqlx::query("INSERT INTO rom_metadata (rom_id, source, metadata_json) SELECT id, 'test', json_object('total_rating', id % 100, 'game_modes', json('[\"Co-operative\"]')) FROM roms")
+        .execute(state.db()).await.unwrap();
+    let started = Instant::now();
+    let page = roms::list(
+        state.db(),
+        RomListParams {
+            limit: 75,
+            offset: 0,
+            search: None,
+            sort: "rating".to_string(),
+            descending: true,
+            missing_cover: false,
+            filters: teatro::domain::rom::RomFilters {
+                rating_min: Some(90.0),
+                game_mode: Some("cooperative".to_string()),
+                ..Default::default()
+            },
+        },
+        &[platform.id],
+    )
+    .await
+    .unwrap();
+    assert_eq!(page.total, 1_000);
+    assert_eq!(page.items.len(), 75);
+    assert!(
+        page.items
+            .iter()
+            .all(|rom| rom.metadata["total_rating"] == 99)
+    );
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < std::time::Duration::from_secs(5),
+        "10k-ROM metadata page exceeded budget: {elapsed:?}"
+    );
+    eprintln!(
+        "Teatro 10k metadata benchmark: co-op filter, minimum score, rating sort, {elapsed:?}"
+    );
+
+    use tower::ServiceExt;
+    support::seed_user_record(
+        &state,
+        "benchmark",
+        "password",
+        teatro::domain::user::UserRole::ReadOnly,
+    )
+    .await;
+    let started = Instant::now();
+    let response = teatro::api::router(state.clone()).oneshot(support::empty_request(
+        "GET", "/api/roms?include_ranges=true&game_mode=cooperative&rating_min=90&limit=75&sort=rating&order=desc", Some(("benchmark", "password")),
+    )).await.unwrap();
+    assert_eq!(response.status(), axum::http::StatusCode::OK);
+    let result = support::response_json(response).await;
+    assert_eq!(result["total"], 1000);
+    assert_eq!(result["ranges"]["rating"], serde_json::json!([0.0, 99.0]));
+    assert_eq!(
+        result["ranges"]["size"],
+        serde_json::json!([1024.0, 4096.0])
+    );
+    assert!(result["ranges"]["year"].is_null());
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < std::time::Duration::from_secs(5),
+        "10k-ROM facets exceeded budget: {elapsed:?}"
+    );
+    eprintln!("Teatro 10k faceted API benchmark, including Basic Auth: {elapsed:?}");
 }

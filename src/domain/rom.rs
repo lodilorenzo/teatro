@@ -144,13 +144,28 @@ pub struct RomFileDependency {
     pub sort_index: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RomListParams {
     pub limit: i64,
     pub offset: i64,
     pub search: Option<String>,
-    pub newest_first: bool,
+    pub sort: String,
+    pub descending: bool,
     pub missing_cover: bool,
+    pub filters: RomFilters,
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct RomFilters {
+    pub collection_id: Option<i64>,
+    pub year_min: Option<i64>,
+    pub year_max: Option<i64>,
+    pub rating_min: Option<f64>,
+    pub rating_max: Option<f64>,
+    pub size_min: Option<i64>,
+    pub size_max: Option<i64>,
+    pub game_mode: Option<String>,
+    pub metadata: Vec<(&'static str, String)>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -3,6 +3,8 @@
 [Documentation home](../README.md#documentation) · [Integrations](integrations.md)
 
 - [Browse and download](#browse-and-download)
+- [Filters and sorting](#filters-and-sorting)
+- [Collections and LAN Party Zones](#collections-and-lan-party-zones)
 - [Upload games](#upload-games)
 - [Scan existing files](#scan-existing-files)
 - [Edit metadata and covers](#edit-metadata-and-covers)
@@ -33,6 +35,38 @@ Browser passwords are not saved. Sign-in lasts up to 24 hours with tab-scoped
 session storage, or 30 days with **Remember me** and origin-scoped local storage.
 Player and admin pages share the session. Use Remember me only on trusted devices.
 Sign out explicitly; closing a browser may preserve its restored tab storage.
+
+## Filters and sorting
+
+Use **Browse & filter** with or without a title query. Combine play mode, year,
+score, genre, developer, publisher, region, language, tag and total-size filters.
+Filters apply before pagination, within the current platform or collection when
+one is selected. Year, score and size have two-ended sliders, exact inputs and
+individual resets; bounds follow games matching the other filters. Untouched
+ranges retain games with missing values.
+
+Sort by title, date added, release year, rating or total size in either direction.
+Unknown values sort last. Applied controls persist in the URL. New IGDB matches
+include play modes; reapply metadata to older games to populate them. Age
+classifications are no longer imported or displayed.
+
+## Collections and LAN Party Zones
+
+In **Admin > Collections**, choose **Create collection**, enter a name and URL
+name, select games across search pages, then save. Collections appear on the player
+home and at `/<url-name>`, such as `/friday-games`.
+
+Regular collections require login. **LAN Party Zone** is off by default. Enabling
+it permits anonymous browsing, covers and downloads of that collection's selected
+games. Anyone who can reach the URL can use it; this is not an IP/subnet restriction.
+Keep the firewall, HTTPS or VPN boundary appropriate to your audience. The full
+catalog, ordinary assets and administration remain protected.
+
+Disabling/deleting a zone or removing a game prevents new anonymous requests, but
+does not recall completed downloads, stop admitted streams or revoke already-issued
+60-second single-use tickets. A game may remain accessible in another enabled zone.
+Changing the URL name breaks the old link. Deleting a collection keeps its games
+and files. See the [collection API](api.md#collections-and-lan-party-zones).
 
 ## Upload games
 
@@ -134,8 +168,8 @@ changes do not move the physical files. Use [IGDB](integrations.md#igdb-metadata
 for lookup and selection, including correction of an automatic match.
 
 Replace a cover with JPEG, PNG or WebP, up to 10 MiB. The Missing cover filter helps
-find games needing artwork. Cached covers are private managed assets and require
-the same read authentication as the catalog.
+find games needing artwork. Cached covers require read authentication except
+through an enabled LAN Party Zone's scoped routes for its selected games.
 
 ## Jobs and cancellation
 

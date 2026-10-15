@@ -2,8 +2,9 @@
 
 [Docker operations](docker.md) · [Packaging notices](../packaging/THIRD_PARTY_NOTICES.md)
 
-Version 0.21.3 is published as `ghcr.io/lodilorenzo/teatro:0.21.3`, index digest
-`sha256:da988f206f70b93b52b4a149c4394a7a2f0e4ee1361a3506e016fdad83163bef`. Publication is manual and beta only. The image tag comes from
+Published image versions, signed index digests and build evidence are recorded in
+the [release notes](https://github.com/lodilorenzo/teatro/releases).
+Publication is manual and beta only. The image tag comes from
 [Cargo.toml](../Cargo.toml). The workflow creates no `latest` tag, Git tag or
 release; beta source versions are marked separately as GitHub pre-releases. Check the
 [package page](https://github.com/users/lodilorenzo/packages/container/package/teatro)
@@ -31,8 +32,13 @@ on a tag staying unchanged outside this workflow.
 
 ## Known findings and scanner limits
 
-The initial Debian 13 review accepted 12 specific high-severity advisories for
-the default non-root service. The exact CVE/package-version pairs and reasons are
+The Debian 13 beta policy retains 10 specific high-severity advisory exceptions
+for the default non-root service. The 15 October snapshot updates curl/libcurl to
+8.14.1-2+deb13u7, fixing CVE-2026-92392, CVE-2026-8286 and CVE-2026-8927. The latter
+two exceptions were removed. On 15 October the owner reapproved only the existing
+CVE-2026-12064 and CVE-2026-8458 risks for the patched curl version, without
+extending their expiry or changing the loopback-only usage boundary.
+The exact CVE/package-version pairs and reasons are
 in [the exception file](../packaging/trivy-ignore.yaml). They expire at
 2026-10-17 00:00 UTC. These are accepted beta risks, not package fixes or an
 independent security audit. New package versions require review. Critical
